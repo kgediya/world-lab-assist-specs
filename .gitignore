@@ -5,6 +5,7 @@
 # Lens Studio local/cache artifacts
 Cache/
 PluginsUserPreferences/
+*.supabaseProject
 *.esproj.*.lock
 *.lsproj.user
 *.esproj.user

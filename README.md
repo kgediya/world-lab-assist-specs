@@ -60,9 +60,19 @@ The Edge Function currently:
    - `WorldLabsSetupPanel`
 4. Assign the required Snap assets such as:
    - `InternetModule`
-   - `SupabaseProject`
+   - a locally created `SupabaseProject` asset
 5. Verify `Assets/Scripts/config.js` matches your Snap Cloud / Supabase deployment.
 6. Deploy or update the `world-labs-assist` Edge Function using the local reference copy in `supabase/functions/world-labs-assist/index.ts`.
+
+### Supabase Project Asset
+
+This repository does not expect a committed `.supabaseProject` asset.
+
+Each contributor should create or assign their own local `SupabaseProject` asset inside Lens Studio and wire it to `WorldLabsBackend`.
+
+Why:
+- the asset contains a public anon token that GitGuardian will flag as a JWT-shaped secret
+- even though it is a public client token, it is cleaner to keep environment-specific Snap Cloud / Supabase assets out of the shared repo
 
 ## Setup Panel Notes
 
@@ -114,6 +124,41 @@ Those paths are possible later, but the current prototype intentionally stays li
 - For a production release, a server-side saved-key or session-token flow would be safer than local secret persistence.
 - The included Edge Function file is a local reference copy and should be kept in sync with the deployed Snap Cloud / Supabase backend.
 
+## Documentation
+
+### Snap / Lens Studio / Spectacles
+
+- Lens scripting API overview: https://developers.snap.com/lens-studio/api/lens-scripting/
+- Lens Studio source control guidance: https://developers.snap.com/lens-studio/4.55.1/references/guides/general/source-control
+- Spectacles Camera Module guide: https://developers.snap.com/spectacles/about-spectacles-features/apis/camera-module
+- `CameraModule` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.CameraModule.html
+- `CameraRequest` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.CameraModule.CameraRequest.html
+- `ImageRequest` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.CameraModule.ImageRequest.html
+- Internet access guide: https://developers.snap.com/spectacles/about-spectacles-features/apis/internet-access
+- `InternetModule` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.InternetModule.html?lang=en-US
+- `RemoteServiceHttpRequest` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.RemoteServiceHttpRequest.html
+- `RemoteServiceHttpResponse` API: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Built-In.RemoteServiceHttpResponse.html
+- Spectacles UIKit `TextInputField`: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Packages_SpectaclesUIKit_Scripts_Components_TextInputField_TextInputField.TextInputField.html
+- Spectacles UIKit `ToggleGroup`: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Packages_SpectaclesUIKit_Scripts_Components_Toggle_ToggleGroup.ToggleGroup
+- Spectacles UIKit `CapsuleButton`: https://developers.snap.com/lens-studio/api/lens-scripting/classes/Packages_SpectaclesUIKit_Scripts_Components_Button_CapsuleButton.CapsuleButton
+
+### Snap Cloud / Supabase
+
+- Snap Cloud overview: https://developers.snap.com/spectacles/about-spectacles-features/snap-cloud/overview
+- Supabase Edge Functions overview: https://supabase.com/docs/guides/functions
+- Supabase Edge Functions quickstart: https://supabase.com/docs/guides/functions/quickstart
+- Supabase Edge Functions architecture: https://supabase.com/docs/guides/functions/architecture
+- Supabase Edge Functions limits: https://supabase.com/docs/guides/functions/limits
+- Supabase Edge Function routing / HTTP methods: https://supabase.com/docs/guides/functions/http-methods
+
+### World Labs / Marble
+
+- World Labs API quickstart: https://docs.worldlabs.ai/api
+- World Labs API FAQ: https://docs.worldlabs.ai/api/faq
+- World Labs API pricing: https://docs.worldlabs.ai/api/pricing
+- World Labs get operation: https://docs.worldlabs.ai/api/reference/operations/get
+- World Labs get world: https://docs.worldlabs.ai/api/reference/worlds/get
+
 ## Contributing and Support
 
 - Contribution guidelines: `CONTRIBUTING.md`
@@ -129,7 +174,7 @@ This repository follows Snap's Lens Studio source-control guidance:
 - keep the root `.gitignore` as the main ignore file for the repo
 
 Reference:
-- Snap Lens Studio source control guidance: https://developers.snap.com/lens-studio/lens-studio-workflow/advanced/source-control
+- Snap Lens Studio source control guidance: https://developers.snap.com/lens-studio/4.55.1/references/guides/general/source-control
 
 ## License
 
