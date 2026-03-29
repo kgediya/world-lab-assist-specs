@@ -51,6 +51,8 @@ dock:
         type: splitter
         orientation: vertical
       - items:
+          - persistentName: com.krazyykrunal.githubkonnect
+            Uuid: 059358f2-f8a4-417e-8700-2d8047a233a9
           - persistentName: Snap.Plugin.Gui.PreviewPanel
             Uuid: 52fc2a95-41a3-427b-a138-1e00eb1c405e
           - persistentName: Snap.Plugin.AssistantAI.Panel
