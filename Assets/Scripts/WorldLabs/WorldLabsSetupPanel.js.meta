@@ -1,0 +1,62 @@
+- !<AssetImportMetadata/434c6d6a-8055-4036-b424-4f66df26b02c>
+  ImportedAssetIds:
+    JavaScriptAsset: !<reference> 85fb3db7-473d-46dc-9f49-d4f066ec66fa
+  ImporterName: JavaScriptAssetImporter
+  PrimaryAsset: !<reference> 85fb3db7-473d-46dc-9f49-d4f066ec66fa
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    JavaScriptAsset: !<own> d1fe3705-84f4-4b88-85b8-37ca1b2f8a10
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ScriptAssetData/d1fe3705-84f4-4b88-85b8-37ca1b2f8a10>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 0b42a447-b15b-4649-a692-414abea5ebd1
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    apiKeyField: false
+    doneButton: false
+    mainMenuRoot: false
+    maskedKeyText: false
+    miniToggle: false
+    modelText: false
+    modelToggleGroup: false
+    panelRoot: false
+    proToggle: false
+    startOpen: false
+    statusText: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - panelRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      mainMenuRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      apiKeyField: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      modelToggleGroup: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      doneButton: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      miniToggle: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      proToggle: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      modelText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      maskedKeyText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      startOpen: false
+  ScriptTypes:
+    -
+      {}

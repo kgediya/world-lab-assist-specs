@@ -1,0 +1,25 @@
+# Lens Studio source-control baseline
+# Snap recommends keeping the project-level .gitignore at the repo root and
+# adding only the extra ignores your workflow needs.
+
+# Lens Studio local/cache artifacts
+Cache/
+PluginsUserPreferences/
+*.esproj.*.lock
+*.lsproj.user
+*.esproj.user
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Optional local tooling
+node_modules/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+__pycache__/
+*.py[cod]
+*$py.class

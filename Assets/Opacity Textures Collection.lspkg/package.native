@@ -1,0 +1,37 @@
+- !<NativePackageDescriptor/bece8a18-6511-41ac-8183-1774654e5ae6>
+  PackagePath: ""
+  StudioVersion:
+    major: 5
+    minor: 15
+    patch: 1
+    build: 25102815
+    type: Unset
+    buildFlavor: ""
+    timestamp: 0
+    commit: ""
+  Description: "Opacity Textures Collection This collection features 12 variations of opacity textures and patterns such as: • Circle • Faded Circle • Square • Faded Square • Poly • Flower • Star • Checkers • Polka 1 • Polka 2 • Spray • Zig Zag Click here to learn more about Materials"
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  VersionMajor: 1
+  VersionMinor: 0
+  VersionPatch: 0
+  UpdateCheckpoint: 76
+  ExportUid: 68cfdc9d-889f-4550-83dc-9fd3275d2857
+  ComponentUid: dd20b92a-ddad-4b70-8f74-15571df67e6c
+  PackagePolicy: CanBeUnpackedTransparent
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  Instantiable: !<reference> 00000000-0000-0000-0000-000000000000
+  AssetLibraryDependencyStructure: !<AssetLibraryDependencyStructure>
+    Name: ""
+    AssetId: ""
+    Hash: ""
+    Version:
+      major: 0
+      minor: 0
+      patch: 0
+      build: 0
