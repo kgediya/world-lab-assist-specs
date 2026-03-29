@@ -1,0 +1,80 @@
+- !<AssetImportMetadata/727801e8-871d-4800-963c-64a4c585fd03>
+  ImportedAssetIds:
+    JavaScriptAsset: !<reference> 37be43f2-9d17-48a9-bcd3-4c0ea090a2fb
+  ImporterName: JavaScriptAssetImporter
+  PrimaryAsset: !<reference> 37be43f2-9d17-48a9-bcd3-4c0ea090a2fb
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    JavaScriptAsset: !<own> 1f21d7eb-37a6-497d-8b8c-2f61ebfad439
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ScriptAssetData/1f21d7eb-37a6-497d-8b8c-2f61ebfad439>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: b67b6c6e-da0c-42bd-a753-2c62385fb331
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    captureToleranceDeg: false
+    compressionPreset: false
+    controller: false
+    debugLogs: false
+    enablePreviewStream: false
+    encodeAsPng: false
+    maxAngularVelocityDegPerSec: false
+    maxPitchOffsetDeg: false
+    maxTranslationSpeedCmPerSec: false
+    minPitchDeltaDeg: false
+    minSampleIntervalMs: false
+    minTranslationDeltaCm: false
+    minYawDeltaDeg: false
+    previewImage: false
+    previewSmallerDimension: false
+    stillImageHeight: false
+    stillImageWidth: false
+    targetPitchDeg: false
+    trackingObject: false
+    useRightCamera: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - controller: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      previewImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      trackingObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      useRightCamera: false
+      enablePreviewStream: true
+      previewSmallerDimension: 640
+      stillImageWidth: 3200
+      stillImageHeight: 2400
+      compressionPreset: 1
+      encodeAsPng: false
+      targetPitchDeg: !<float> 0.000000
+      maxPitchOffsetDeg: !<float> 18.000000
+      captureToleranceDeg: !<float> 26.000000
+      minSampleIntervalMs: 650
+      minTranslationDeltaCm: !<float> 12.000000
+      minYawDeltaDeg: !<float> 18.000000
+      minPitchDeltaDeg: !<float> 10.000000
+      maxAngularVelocityDegPerSec: !<float> 200.000000
+      maxTranslationSpeedCmPerSec: !<float> 200.000000
+      debugLogs: false
+  ScriptTypes:
+    -
+      {}

@@ -1,0 +1,66 @@
+- !<AssetImportMetadata/c08d49b3-9668-4ef1-8c93-3a0ec57259d3>
+  ImportedAssetIds:
+    JavaScriptAsset: !<reference> 0433a383-3a8a-46b3-9806-bf0983f76891
+  ImporterName: JavaScriptAssetImporter
+  PrimaryAsset: !<reference> 0433a383-3a8a-46b3-9806-bf0983f76891
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    JavaScriptAsset: !<own> 05d0915d-4e25-4ef9-8ac0-ef149a7562c1
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ScriptAssetData/05d0915d-4e25-4ef9-8ac0-ef149a7562c1>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 5b2258b4-c1fa-4d86-af96-c1a0233fb0d6
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    debugLogs: false
+    fallbackDisplayName: false
+    fallbackTextPrompt: false
+    includeAuthToken: false
+    internetModule: false
+    maxPollAttempts: false
+    modelName: false
+    pollIntervalMs: false
+    projectUrlOverride: false
+    startScanFunctionName: false
+    statusFunctionName: false
+    supabaseProject: false
+    useMockResponses: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
+      supabaseProject: !<reference.SupabaseProject> 00000000-0000-0000-0000-000000000000
+      projectUrlOverride: "https://ehhntqueiwfbxcvnnbdl.snapcloud.dev"
+      startScanFunctionName: worldlabs-start-scan
+      statusFunctionName: worldlabs-scan-status
+      fallbackDisplayName: World Labs Assist Capture
+      fallbackTextPrompt: A realistic immersive reconstruction of the scanned environment
+      modelName: Marble 0.1-plus
+      includeAuthToken: true
+      pollIntervalMs: 10000
+      maxPollAttempts: 36
+      useMockResponses: true
+      debugLogs: false
+  ScriptTypes:
+    -
+      {}

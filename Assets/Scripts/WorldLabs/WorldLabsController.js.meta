@@ -1,0 +1,78 @@
+- !<AssetImportMetadata/428cf388-98b8-4c8a-af8f-2ef9aebb4329>
+  ImportedAssetIds:
+    JavaScriptAsset: !<reference> fac526dc-15b2-40a0-9165-fb150a64f0b3
+  ImporterName: JavaScriptAssetImporter
+  PrimaryAsset: !<reference> fac526dc-15b2-40a0-9165-fb150a64f0b3
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    JavaScriptAsset: !<own> 506b8513-55fb-419f-a561-67778d087c59
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ScriptAssetData/506b8513-55fb-419f-a561-67778d087c59>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 9e81feb4-7b0f-4a6a-a732-6710a6ecf5a8
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    autoCreateRemoteSession: false
+    backend: false
+    buttonScaleLerpSpeed: false
+    cameraCapture: false
+    completeCaptureButton: false
+    debugLogs: false
+    debugText: false
+    hiddenButtonScale: false
+    maxAcceptedFrames: false
+    progressText: false
+    resetButton: false
+    secondaryText: false
+    sessionLabelPrefix: false
+    settingsButton: false
+    setupPanel: false
+    startScanButton: false
+    statusText: false
+    submitButton: false
+    targetCoveragePercent: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - cameraCapture: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      backend: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      setupPanel: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      secondaryText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      progressText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      debugText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      startScanButton: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      completeCaptureButton: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      submitButton: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      resetButton: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      settingsButton: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      sessionLabelPrefix: worldlabs
+      maxAcceptedFrames: 120
+      targetCoveragePercent: !<float> 85.000000
+      buttonScaleLerpSpeed: !<float> 8.000000
+      hiddenButtonScale: 0.001000
+      autoCreateRemoteSession: true
+      debugLogs: false
+  ScriptTypes:
+    -
+      {}
