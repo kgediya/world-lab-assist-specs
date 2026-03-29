@@ -208,9 +208,10 @@ function getDirectionChecklist() {
     var i;
     for (i = 0; i < REQUIRED_DIRECTIONS.length; i++) {
         var direction = REQUIRED_DIRECTIONS[i];
-        parts.push((coveredSectors[direction] ? "[x] " : "[ ] ") + direction);
+        var shortLabel = direction.charAt(0).toUpperCase();
+        parts.push(shortLabel + (coveredSectors[direction] ? "[x]" : "[ ]"));
     }
-    return parts.join("  ");
+    return parts.join(" ");
 }
 
 function getPendingDirection() {
@@ -234,13 +235,13 @@ function getDirectionPrompt(directionName) {
         return "Look ahead.";
     }
     if (directionName === "right") {
-        return "Turn to your right.";
+        return "Turn right.";
     }
     if (directionName === "back") {
         return "Turn around.";
     }
     if (directionName === "left") {
-        return "Turn to your left.";
+        return "Turn left.";
     }
     return "Turn slowly.";
 }
@@ -253,7 +254,7 @@ function refreshCaptureUi() {
     }
 
     if (state === STATE_REVIEW) {
-        setSecondary("Captured views: " + getDirectionChecklist());
+        setSecondary("Views ready. " + getDirectionChecklist());
         return;
     }
 
@@ -261,9 +262,8 @@ function refreshCaptureUi() {
     var guidance = cameraCapture && cameraCapture.getLiveGuidance ? cameraCapture.getLiveGuidance() : null;
     var pendingDirection = getPendingDirection();
     var header = pendingDirection ? getDirectionPrompt(pendingDirection) : "Turn slowly.";
-    var message = guidance && guidance.message ? guidance.message : "Hold steady.";
-
-    setSecondary(header + " " + message + "  " + getDirectionChecklist());
+    var compactMessage = guidance && guidance.ready ? "Hold." : header;
+    setSecondary(compactMessage + " " + getDirectionChecklist());
 }
 
 function resetInternal() {
@@ -451,7 +451,7 @@ function resetScan() {
         return;
     }
     setState(STATE_IDLE, "Ready to scan.");
-    setSecondary("Capture four wide views in any order: front, right, back, left.");
+    setSecondary("Capture four wide views.");
 }
 
 script.startScan = startScan;

@@ -13,16 +13,16 @@ metaInfo:
     []
   tags:
     []
-  lensName: Specs Starter
+  lensName: World Labs Assist
   lensDescriptors:
-    - EXPERIMENTAL_API
+    []
   lensApplicability:
     - Front
     - Back
   lensClientCompatibilities:
     - Spectacles
   platformBundlesEnabled: false
-  iconHash: ""
+  iconHash: e937651e50eb956f914a31e0b65abd9f
   videoPreviewHash: ""
   fromTemplateName: Spectacles
   fromTemplateUrl: Lens Studio 5.15.1.25102815
