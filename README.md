@@ -8,7 +8,7 @@ The current experience is intentionally focused:
 - configure World Labs once in-lens
 - capture four strong environmental views in any order
 - submit to Snap Cloud / Supabase
-- hand off to Marble when the world is ready
+- get ready for the next scan while the world finishes in the background
 
 ## Current Flow
 
@@ -19,8 +19,17 @@ The current experience is intentionally focused:
    - `Pro` -> `Marble 0.1-plus`
 4. The lens guides the wearer to capture four wide views of the space in any order.
 5. The lens sends those views to the `world-labs-assist` Edge Function on Snap Cloud / Supabase.
-6. The Edge Function uploads the images to World Labs, starts world generation, and polls operation status.
-7. The completed world is handed off to Marble for viewing.
+6. The Edge Function uploads the images to World Labs and starts world generation.
+7. As soon as the generation request is accepted, the lens resets to idle so the wearer can start another scan.
+8. Polling continues in the background until World Labs finishes the world.
+9. The completed world is then available in Marble for viewing.
+
+### Model Selection
+
+- `Mini` maps to `Marble 0.1-mini`
+- `Pro` maps to `Marble 0.1-plus`
+
+The setup panel persists both the API key and the selected model locally on-device, and restores those values when reopened.
 
 ## Architecture
 
@@ -33,7 +42,7 @@ The current experience is intentionally focused:
 - `Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js`
   Heading-anchored capture logic, guidance, still-image capture on Spectacles, and preview fallback in Lens Studio.
 - `Assets/Scripts/WorldLabs/WorldLabsBackend.js`
-  Lens-side transport layer for calling the Edge Function and polling generation status.
+  Lens-side transport layer for calling the Edge Function, starting background submissions, and polling generation status in the background.
 - `Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js`
   Setup flow for API key entry, model selection, local persistence, and main-menu gating.
 
@@ -47,7 +56,8 @@ The Edge Function currently:
 - uses the user-provided `apiKey` when supplied by the lens
 - uploads up to four captured images as World Labs media assets
 - starts a `multi-image` world generation request
-- polls operation status and returns the resulting Marble world URL
+- supports background status polling from the lens after submission
+- returns the resulting Marble world URL when available
 
 ## Setup
 
@@ -80,6 +90,21 @@ Why:
 - `DONE` is disabled until a non-empty API key is entered.
 - The selected API key and model are persisted locally on-device for prototype convenience.
 - The settings button can reopen the panel later so the user can change their key or switch between `Mini` and `Pro`.
+- `DONE` commits the current API key and current model, then closes the panel.
+- Reopening the panel restores the previously saved API key and model selection.
+
+## World Labs Billing Note
+
+This prototype uses the World Labs API, which has its own billing / credit model.
+
+Important:
+- a World Labs subscription is not the same thing as API credits
+- even if a World Labs account is connected successfully, generation can still fail if API billing is not enabled or API credits are unavailable
+
+Common error:
+- `402 Insufficient credits for model ...`
+
+That error means the API key is valid, but the World Labs account does not currently have the required API credits for generation.
 
 ## Preview vs Spectacles
 
@@ -95,6 +120,18 @@ Use Spectacles for:
 - actual capture quality
 - real still-image behavior
 - end-to-end submission validation
+
+## Submission Behavior
+
+The current `WLAO` app does not block on world completion.
+
+After submission:
+- the current scan is handed off to World Labs
+- the app resets to idle quickly
+- the wearer can begin the next scan
+- background polling continues until the previous world is finished
+
+This keeps the prototype feeling faster and better suited to repeated world capture sessions.
 
 ## Future Improvements
 
@@ -115,6 +152,7 @@ Why this is attractive:
 What is not in scope yet:
 - FFmpeg conversion inside the current Edge Function
 - panorama stitching inside the current Lens Studio flow
+- video upload orchestration from Lens Studio into the World Labs video path
 
 Those paths are possible later, but the current prototype intentionally stays lightweight and cheap to operate.
 
