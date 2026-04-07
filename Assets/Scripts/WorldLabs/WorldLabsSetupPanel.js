@@ -32,6 +32,19 @@ var MODEL_QUALITY = getConfig("modelOptions.proValue", "Marble 0.1-plus");
 var MODEL_FAST_LABEL = getConfig("modelOptions.miniLabel", "Mini");
 var MODEL_QUALITY_LABEL = getConfig("modelOptions.proLabel", "Pro");
 var latestApiKeyDraft = "";
+var latestModelDraft = MODEL_FAST;
+var panelIsOpen = false;
+var suppressModelSelectionCallback = false;
+
+function sanitizeModelName(modelName) {
+    if (modelName === MODEL_QUALITY || modelName === MODEL_FAST) {
+        return modelName;
+    }
+    if (modelName === MODEL_QUALITY_LABEL || modelName === "plus" || modelName === "pro") {
+        return MODEL_QUALITY;
+    }
+    return MODEL_FAST;
+}
 
 function readStoredString(key, fallback) {
     if (!STORE || !STORE.getString) {
@@ -94,19 +107,31 @@ function ensureSettings() {
         global.WorldLabsUserSettings.modelName = readStoredString(STORAGE_KEY_MODEL, MODEL_FAST);
     }
 
+    global.WorldLabsUserSettings.modelName = sanitizeModelName(global.WorldLabsUserSettings.modelName);
+
     global.WorldLabsUserSettings.maskedKey = maskApiKey(global.WorldLabsUserSettings.apiKey || "");
-    latestApiKeyDraft = global.WorldLabsUserSettings.apiKey || "";
     return global.WorldLabsUserSettings;
 }
 
 function persistSettings() {
     var settings = ensureSettings();
     writeStoredString(STORAGE_KEY_API, settings.apiKey || "");
-    writeStoredString(STORAGE_KEY_MODEL, settings.modelName || MODEL_FAST);
+    writeStoredString(STORAGE_KEY_MODEL, sanitizeModelName(settings.modelName || MODEL_FAST));
+}
+
+function commitSettings(apiKey, modelName) {
+    var settings = ensureSettings();
+    settings.apiKey = String(apiKey || "").trim();
+    settings.modelName = sanitizeModelName(modelName || MODEL_FAST);
+    settings.maskedKey = maskApiKey(settings.apiKey);
+    latestApiKeyDraft = settings.apiKey;
+    latestModelDraft = settings.modelName;
+    logMaskedKey(settings.maskedKey);
+    persistSettings();
 }
 
 function getModelLabel(modelName) {
-    return modelName === MODEL_QUALITY ? MODEL_QUALITY_LABEL : MODEL_FAST_LABEL;
+    return sanitizeModelName(modelName) === MODEL_QUALITY ? MODEL_QUALITY_LABEL : MODEL_FAST_LABEL;
 }
 
 function hasDraftApiKey() {
@@ -189,11 +214,46 @@ function getTextInputValue() {
     return latestApiKeyDraft || "";
 }
 
+function getPlaceholderText() {
+    if (!script.apiKeyField) {
+        return "";
+    }
+    try {
+        if (script.apiKeyField.placeholderText !== undefined && script.apiKeyField.placeholderText !== null) {
+            return String(script.apiKeyField.placeholderText);
+        }
+    } catch (error) {
+    }
+    return "";
+}
+
+function getSafeApiKeyCandidate() {
+    var candidate = String(latestApiKeyDraft || "").trim();
+    if (!candidate) {
+        candidate = String(getTextInputValue() || "").trim();
+    }
+
+    var placeholder = String(getPlaceholderText() || "").trim();
+    if (candidate && placeholder && candidate === placeholder) {
+        return "";
+    }
+
+    return candidate;
+}
+
 function setToggleState(toggleComponent, isOn) {
     if (!toggleComponent) {
         return;
     }
     try {
+        if (toggleComponent.toggle) {
+            toggleComponent.toggle(!!isOn);
+            return;
+        }
+        if (toggleComponent.isOn !== undefined) {
+            toggleComponent.isOn = !!isOn;
+            return;
+        }
         if (toggleComponent.setValue) {
             toggleComponent.setValue(isOn);
             return;
@@ -209,32 +269,219 @@ function setToggleState(toggleComponent, isOn) {
     }
 }
 
+function isToggleOn(toggleComponent) {
+    if (!toggleComponent) {
+        return false;
+    }
+    try {
+        if (toggleComponent.isOn !== undefined) {
+            return !!toggleComponent.isOn;
+        }
+        if (toggleComponent.getIsToggledOn) {
+            return !!toggleComponent.getIsToggledOn();
+        }
+        if (toggleComponent.getValue) {
+            return !!toggleComponent.getValue();
+        }
+        if (toggleComponent.isOn !== undefined) {
+            return !!toggleComponent.isOn;
+        }
+        if (toggleComponent.value !== undefined) {
+            return !!toggleComponent.value;
+        }
+        if (toggleComponent.isToggledOn !== undefined) {
+            return !!toggleComponent.isToggledOn;
+        }
+    } catch (error) {
+    }
+    return false;
+}
+
+function isSameToggle(a, b) {
+    if (!a || !b) {
+        return false;
+    }
+    if (a === b) {
+        return true;
+    }
+    if (a.sceneObject && b.sceneObject && a.sceneObject === b.sceneObject) {
+        return true;
+    }
+    return false;
+}
+
+function getToggleList() {
+    if (!script.modelToggleGroup) {
+        return [];
+    }
+    try {
+        if (script.modelToggleGroup.toggleables && script.modelToggleGroup.toggleables.length !== undefined) {
+            return script.modelToggleGroup.toggleables;
+        }
+        if (script.modelToggleGroup.toggles && script.modelToggleGroup.toggles.length !== undefined) {
+            return script.modelToggleGroup.toggles;
+        }
+        if (script.modelToggleGroup._toggles && script.modelToggleGroup._toggles.length !== undefined) {
+            return script.modelToggleGroup._toggles;
+        }
+    } catch (error) {
+    }
+    return [];
+}
+
+function getToggleIndexFromGroup(toggleComponent) {
+    var toggles = getToggleList();
+    var i;
+    for (i = 0; i < toggles.length; i++) {
+        if (isSameToggle(toggleComponent, toggles[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function getToggleName(toggleComponent) {
+    if (!toggleComponent) {
+        return "";
+    }
+    try {
+        if (toggleComponent.sceneObject && toggleComponent.sceneObject.name) {
+            return String(toggleComponent.sceneObject.name).toLowerCase();
+        }
+    } catch (error) {
+    }
+    return "";
+}
+
+function resolveModelFromToggle(toggleComponent) {
+    if (!toggleComponent) {
+        return null;
+    }
+
+    if (script.proToggle && isSameToggle(toggleComponent, script.proToggle)) {
+        return MODEL_QUALITY;
+    }
+    if (script.miniToggle && isSameToggle(toggleComponent, script.miniToggle)) {
+        return MODEL_FAST;
+    }
+
+    var toggleIndex = getToggleIndexFromGroup(toggleComponent);
+    if (toggleIndex === 1) {
+        return MODEL_QUALITY;
+    }
+    if (toggleIndex === 0) {
+        return MODEL_FAST;
+    }
+
+    var name = getToggleName(toggleComponent);
+    if (name.indexOf("plus") !== -1 || name.indexOf("pro") !== -1 || name.indexOf("quality") !== -1) {
+        return MODEL_QUALITY;
+    }
+    if (name.indexOf("mini") !== -1 || name.indexOf("fast") !== -1) {
+        return MODEL_FAST;
+    }
+
+    return null;
+}
+
+function getSelectedToggleFromGroup() {
+    if (!script.modelToggleGroup) {
+        return null;
+    }
+
+    try {
+        if (script.modelToggleGroup.selectedToggle) {
+            return script.modelToggleGroup.selectedToggle;
+        }
+        if (script.modelToggleGroup.toggleable) {
+            return script.modelToggleGroup.toggleable;
+        }
+        if (script.modelToggleGroup.currentToggle) {
+            return script.modelToggleGroup.currentToggle;
+        }
+    } catch (error) {
+    }
+
+    var toggles = getToggleList();
+    var i;
+    for (i = 0; i < toggles.length; i++) {
+        if (isToggleOn(toggles[i])) {
+            return toggles[i];
+        }
+    }
+
+    return null;
+}
+
+function getSelectedModelFromUi() {
+    var resolved = resolveModelFromToggle(getSelectedToggleFromGroup());
+    if (resolved) {
+        return resolved;
+    }
+
+    if (isToggleOn(script.proToggle)) {
+        return MODEL_QUALITY;
+    }
+    if (isToggleOn(script.miniToggle)) {
+        return MODEL_FAST;
+    }
+
+    if (script.modelToggleGroup) {
+        try {
+            if (script.modelToggleGroup.selectedIndex !== undefined) {
+                return Number(script.modelToggleGroup.selectedIndex) === 1 ? MODEL_QUALITY : MODEL_FAST;
+            }
+            if (script.modelToggleGroup.value !== undefined) {
+                return Number(script.modelToggleGroup.value) === 1 ? MODEL_QUALITY : MODEL_FAST;
+            }
+        } catch (error) {
+        }
+    }
+
+    var toggles = getToggleList();
+    var i;
+    for (i = 0; i < toggles.length; i++) {
+        if (isToggleOn(toggles[i])) {
+            resolved = resolveModelFromToggle(toggles[i]);
+            if (resolved) {
+                return resolved;
+            }
+            return i === 1 ? MODEL_QUALITY : MODEL_FAST;
+        }
+    }
+
+    return sanitizeModelName(latestModelDraft || ensureSettings().modelName || MODEL_FAST);
+}
+
 function syncToggleSelection(modelName) {
+    suppressModelSelectionCallback = true;
     setToggleState(script.miniToggle, modelName !== MODEL_QUALITY);
     setToggleState(script.proToggle, modelName === MODEL_QUALITY);
 
     if (!script.modelToggleGroup) {
+        suppressModelSelectionCallback = false;
         return;
     }
     try {
-        if (script.modelToggleGroup.selectedIndex !== undefined) {
-            script.modelToggleGroup.selectedIndex = modelName === MODEL_QUALITY ? 1 : 0;
-            return;
-        }
-        if (script.modelToggleGroup.value !== undefined) {
-            script.modelToggleGroup.value = modelName === MODEL_QUALITY ? 1 : 0;
+        var toggles = getToggleList();
+        if (toggles.length >= 2) {
+            setToggleState(toggles[0], modelName !== MODEL_QUALITY);
+            setToggleState(toggles[1], modelName === MODEL_QUALITY);
         }
     } catch (error) {
     }
+    suppressModelSelectionCallback = false;
 }
 
 function refreshUi() {
     var settings = ensureSettings();
+    var resolvedModelName = sanitizeModelName(panelIsOpen ? latestModelDraft : (settings.modelName || MODEL_FAST));
+    settings.modelName = sanitizeModelName(settings.modelName || MODEL_FAST);
 
-    setTextInputValue(latestApiKeyDraft || settings.apiKey || "");
+    setTextInputValue(panelIsOpen ? latestApiKeyDraft : (settings.apiKey || ""));
 
     if (script.modelText) {
-        script.modelText.text = getModelLabel(settings.modelName || MODEL_FAST);
+        script.modelText.text = getModelLabel(resolvedModelName);
     }
     if (script.maskedKeyText) {
         script.maskedKeyText.text = maskApiKey(settings.apiKey);
@@ -244,27 +491,47 @@ function refreshUi() {
     }
 
     setDoneButtonEnabled(hasDraftApiKey());
-    syncToggleSelection(settings.modelName || MODEL_FAST);
+    syncToggleSelection(resolvedModelName);
+}
+
+function scheduleUiRefresh() {
+    var event = script.createEvent("DelayedCallbackEvent");
+    event.bind(function () {
+        refreshUi();
+    });
+    event.reset(0.05);
 }
 
 function openPanel() {
+    var settings = ensureSettings();
+    latestApiKeyDraft = settings.apiKey || "";
+    latestModelDraft = sanitizeModelName(settings.modelName || MODEL_FAST);
+    panelIsOpen = true;
     setRoots(true);
     refreshUi();
+    scheduleUiRefresh();
 }
 
 function closePanel() {
+    panelIsOpen = false;
     setRoots(false);
 }
 
 function togglePanel() {
     var panelVisible = script.panelRoot ? !!script.panelRoot.enabled : false;
-    setRoots(!panelVisible);
-    refreshUi();
+    if (panelVisible) {
+        closePanel();
+    } else {
+        openPanel();
+    }
 }
 
 function applyApiKey(value) {
     var settings = ensureSettings();
-    var nextKey = value !== undefined && value !== null ? String(value) : getTextInputValue();
+    var nextKey = value !== undefined && value !== null ? String(value) : latestApiKeyDraft;
+    if ((nextKey === undefined || nextKey === null || nextKey === "") && script.apiKeyField) {
+        nextKey = getTextInputValue();
+    }
     nextKey = nextKey.trim();
     latestApiKeyDraft = nextKey;
     settings.apiKey = nextKey;
@@ -296,12 +563,10 @@ function clearApiKey() {
 }
 
 function setModel(modelName) {
-    var settings = ensureSettings();
-    settings.modelName = modelName || MODEL_FAST;
-    persistSettings();
+    latestModelDraft = sanitizeModelName(modelName || MODEL_FAST);
     refreshUi();
     if (script.statusText) {
-        script.statusText.text = getModelLabel(settings.modelName) + " mode selected.";
+        script.statusText.text = getModelLabel(latestModelDraft) + " mode selected.";
     }
 }
 
@@ -314,34 +579,48 @@ function selectQualityModel() {
 }
 
 function onModelToggleSelected(args) {
-    var selectedToggle = args && args.toggleable ? args.toggleable : null;
-    if (selectedToggle && script.proToggle && selectedToggle === script.proToggle) {
-        selectQualityModel();
+    if (suppressModelSelectionCallback) {
         return;
     }
-    if (selectedToggle && script.miniToggle && selectedToggle === script.miniToggle) {
-        selectFastModel();
+
+    var selectedToggle = args && args.toggleable ? args.toggleable : null;
+    var resolved = resolveModelFromToggle(selectedToggle);
+    if (resolved) {
+        latestModelDraft = resolved;
+        setModel(resolved);
         return;
     }
 
     if (args && args.index !== undefined) {
         if (Number(args.index) === 1) {
+            latestModelDraft = MODEL_QUALITY;
             selectQualityModel();
         } else {
+            latestModelDraft = MODEL_FAST;
             selectFastModel();
         }
+        return;
+    }
+
+    resolved = resolveModelFromToggle(getSelectedToggleFromGroup());
+    if (resolved) {
+        latestModelDraft = resolved;
+        setModel(resolved);
         return;
     }
 
     if (script.modelToggleGroup && script.modelToggleGroup.selectedIndex !== undefined) {
         if (Number(script.modelToggleGroup.selectedIndex) === 1) {
+            latestModelDraft = MODEL_QUALITY;
             selectQualityModel();
         } else {
+            latestModelDraft = MODEL_FAST;
             selectFastModel();
         }
         return;
     }
 
+    latestModelDraft = MODEL_FAST;
     selectFastModel();
 }
 
@@ -356,11 +635,18 @@ function cycleModel() {
 
 function onDonePressed() {
     print("[WorldLabsSetupPanel] DONE pressed");
-    applyApiKey();
+    var nextModel = getSelectedModelFromUi();
+    var nextApiKey = getSafeApiKeyCandidate();
+    commitSettings(nextApiKey, nextModel);
+    print("[WorldLabsSetupPanel] Model: " + getModelLabel(nextModel));
     if (isConfigured()) {
+        if (script.statusText) {
+            script.statusText.text = "Settings saved.";
+        }
         closePanel();
     } else if (script.statusText) {
         script.statusText.text = "Enter a valid World Labs API key to continue.";
+        refreshUi();
     }
 }
 
@@ -394,9 +680,14 @@ script.cycleModel = cycleModel;
 script.getSettings = getSettings;
 script.isConfigured = isConfigured;
 script.getCurrentModelLabel = function () { return getModelLabel(ensureSettings().modelName); };
+script.getCurrentModelName = function () { return sanitizeModelName(ensureSettings().modelName); };
 
 script.createEvent("OnStartEvent").bind(function () {
-    ensureSettings();
+    var settings = ensureSettings();
+    latestApiKeyDraft = settings.apiKey || "";
+    latestModelDraft = sanitizeModelName(settings.modelName || MODEL_FAST);
+    panelIsOpen = !!(script.startOpen || !isConfigured());
     setRoots(script.startOpen || !isConfigured());
     refreshUi();
+    scheduleUiRefresh();
 });

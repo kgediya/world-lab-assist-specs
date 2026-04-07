@@ -42,3 +42,7 @@ pnpm-lock.yaml
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Large local capture/test assets
+*.ply
+*.ply.meta

@@ -15,6 +15,8 @@
 var supabaseClient = null;
 var DEFAULT_FUNCTION_NAME = "world-labs-assist";
 var MAX_WORLDLABS_IMAGES = 4;
+var backgroundJobs = [];
+var nextBackgroundJobId = 1;
 var lastDebug = {
     mode: "idle",
     requestUrl: "",
@@ -91,9 +93,27 @@ function getUserSettings() {
     return global.WorldLabsUserSettings;
 }
 
+function sanitizeModelName(modelName) {
+    var defaultModel = getConfig("worldDefaults.modelName", "Marble 0.1-mini");
+    var miniModel = getConfig("modelOptions.miniValue", "Marble 0.1-mini");
+    var plusModel = getConfig("modelOptions.proValue", "Marble 0.1-plus");
+    var miniLabel = String(getConfig("modelOptions.miniLabel", "Mini")).toLowerCase();
+    var plusLabel = String(getConfig("modelOptions.proLabel", "Pro")).toLowerCase();
+    var normalized = String(modelName || "").trim();
+    var normalizedLower = normalized.toLowerCase();
+
+    if (normalized === plusModel || normalizedLower === "plus" || normalizedLower === "pro" || normalizedLower === plusLabel.toLowerCase()) {
+        return plusModel;
+    }
+    if (normalized === miniModel || normalizedLower === "mini" || normalizedLower === miniLabel.toLowerCase()) {
+        return miniModel;
+    }
+    return defaultModel || miniModel;
+}
+
 function getResolvedModelName() {
     var settings = getUserSettings();
-    return settings.modelName || script.modelName || getConfig("worldDefaults.modelName", "Marble 0.1-mini");
+    return sanitizeModelName(settings.modelName || script.modelName || getConfig("worldDefaults.modelName", "Marble 0.1-mini"));
 }
 
 function getResolvedApiKey() {
@@ -460,12 +480,154 @@ async function uploadSession(manifest, frames, onProgress) {
     return true;
 }
 
+async function submitSessionInBackground(manifest, frames, callbacks) {
+    callbacks = callbacks || {};
+
+    if (script.useMockResponses) {
+        var mockOperationId = "mock_operation_" + Math.floor(getTime() * 1000);
+        if (callbacks.onSubmitted) {
+            callbacks.onSubmitted({
+                operationId: mockOperationId,
+                message: "Preview mode is on. Background generation is simulated."
+            });
+        }
+        wait(1000).then(function () {
+            if (callbacks.onCompleted) {
+                callbacks.onCompleted({
+                    operationId: mockOperationId,
+                    worldId: "mock_world_" + Math.floor(getTime() * 1000),
+                    worldUrl: "https://marble.worldlabs.ai/world/mock",
+                    message: "Preview world finished in the background."
+                });
+            }
+        });
+        return {
+            operationId: mockOperationId,
+            worldId: "",
+            worldUrl: ""
+        };
+    }
+
+    var startPayload = buildStartPayload(manifest, frames);
+    if (!startPayload.apiKey) {
+        lastDebug.errorMessage = "Add your World Labs API key in Settings first.";
+        throw new Error(lastDebug.errorMessage);
+    }
+    if (!startPayload.images.length) {
+        lastDebug.errorMessage = "No views are ready yet.";
+        throw new Error(lastDebug.errorMessage);
+    }
+
+    if (callbacks.onStatus) {
+        callbacks.onStatus({
+            phase: "submitting",
+            message: "Sending " + startPayload.images.length + " views to World Labs with " + sanitizeModelName(startPayload.modelName) + "."
+        });
+    }
+
+    var startResponse = await sendEdgeFunctionRequest(getFunctionName("start"), startPayload);
+    var operationId = startResponse.operationId || startResponse.operation_id || manifest.localSessionId;
+    manifest.remoteSessionId = operationId;
+
+    var job = {
+        id: nextBackgroundJobId++,
+        manifest: manifest,
+        operationId: operationId,
+        worldId: startResponse.worldId || null,
+        apiKey: startPayload.apiKey,
+        callbacks: callbacks,
+        startedAtMs: Math.floor(getTime() * 1000)
+    };
+    backgroundJobs.push(job);
+
+    if (callbacks.onSubmitted) {
+        callbacks.onSubmitted({
+            operationId: operationId,
+            message: "World submitted. Generation continues in the background."
+        });
+    }
+
+    pollBackgroundJob(job);
+
+    return {
+        operationId: operationId,
+        worldId: job.worldId || "",
+        worldUrl: ""
+    };
+}
+
+async function pollBackgroundJob(job) {
+    var attempt;
+    try {
+        for (attempt = 0; attempt < script.maxPollAttempts; attempt++) {
+            if (job.callbacks && job.callbacks.onStatus) {
+                job.callbacks.onStatus({
+                    phase: "polling",
+                    operationId: job.operationId,
+                    attempt: attempt + 1,
+                    message: "World Labs is still building your world."
+                });
+            }
+
+            var statusResponse = await sendEdgeFunctionRequest(getFunctionName("status"), {
+                action: "status",
+                operationId: job.operationId,
+                worldId: job.worldId || null,
+                apiKey: job.apiKey
+            });
+
+            if (statusResponse && statusResponse.done) {
+                job.manifest.worldLabsOperation = statusResponse.operation || statusResponse;
+                job.manifest.worldLabsWorldId = statusResponse.worldId || (statusResponse.operation && statusResponse.operation.metadata ? statusResponse.operation.metadata.world_id : "");
+                job.manifest.worldLabsWorldUrl = statusResponse.worldUrl || (statusResponse.operation && statusResponse.operation.response ? statusResponse.operation.response.world_marble_url : "");
+                lastDebug.worldId = job.manifest.worldLabsWorldId || "";
+                lastDebug.worldUrl = job.manifest.worldLabsWorldUrl || "";
+
+                if (job.callbacks && job.callbacks.onCompleted) {
+                    job.callbacks.onCompleted({
+                        operationId: job.operationId,
+                        worldId: job.manifest.worldLabsWorldId || "",
+                        worldUrl: job.manifest.worldLabsWorldUrl || "",
+                        message: "A world finished in the background."
+                    });
+                }
+                removeBackgroundJob(job.id);
+                return;
+            }
+
+            await wait(script.pollIntervalMs);
+        }
+
+        throw new Error("World Labs took too long to finish this request.");
+    } catch (error) {
+        lastDebug.errorMessage = summarizeError(error);
+        if (job.callbacks && job.callbacks.onFailed) {
+            job.callbacks.onFailed({
+                operationId: job.operationId,
+                error: lastDebug.errorMessage,
+                message: "A background world could not finish."
+            });
+        }
+        removeBackgroundJob(job.id);
+    }
+}
+
+function removeBackgroundJob(jobId) {
+    var i;
+    for (i = backgroundJobs.length - 1; i >= 0; i--) {
+        if (backgroundJobs[i].id === jobId) {
+            backgroundJobs.splice(i, 1);
+        }
+    }
+}
+
 async function finalizeSession(manifest) {
     return true;
 }
 
 script.createSession = createSession;
 script.uploadSession = uploadSession;
+script.submitSessionInBackground = submitSessionInBackground;
 script.finalizeSession = finalizeSession;
 script.buildStartPayload = buildStartPayload;
 script.getFunctionUrl = getFunctionUrl;
@@ -476,3 +638,4 @@ script.getResolvedModelName = getResolvedModelName;
 script.getResolvedApiKey = getResolvedApiKey;
 script.getLastDebug = function () { return lastDebug; };
 script.isMockMode = function () { return !!script.useMockResponses; };
+script.getActiveBackgroundCount = function () { return backgroundJobs.length; };
