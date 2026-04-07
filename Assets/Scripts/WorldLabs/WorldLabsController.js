@@ -410,24 +410,37 @@ async function submitScan() {
     }
 
     var backend = getBackend();
-    if (!backend || !backend.uploadSession) {
+    if (!backend || !backend.submitSessionInBackground) {
         setState(STATE_FAILED, "Backend script is not ready.");
         return false;
     }
 
-    setState(STATE_UPLOADING, "Creating your world...");
+    var manifestForSubmission = manifest;
+    var framesForSubmission = acceptedFrames.slice(0);
+
+    setState(STATE_UPLOADING, "Submitting your world...");
     setBackendDebugSummary("Working with World Labs.");
 
     try {
-        var success = await backend.uploadSession(manifest, acceptedFrames, function (currentBatch, totalBatches, label) {
-            setSecondary(label || ("Uploading batch " + currentBatch + "/" + totalBatches));
-            setBackendDebugSummary("Working with World Labs.");
+        await backend.submitSessionInBackground(manifestForSubmission, framesForSubmission, {
+            onStatus: function (info) {
+                if (state === STATE_UPLOADING) {
+                    setSecondary(info && info.message ? info.message : "Submitting to World Labs.");
+                    setBackendDebugSummary("Working with World Labs.");
+                } else if (info && info.phase === "polling") {
+                    log("Background: " + (info.message || "World Labs is still building your world."));
+                }
+            },
+            onSubmitted: function (info) {
+                log(info && info.message ? info.message : "World submitted. Generation continues in the background.");
+            },
+            onCompleted: function (info) {
+                log(info && info.worldUrl ? ("Background world ready. " + info.worldUrl) : "A background world is ready in Marble.");
+            },
+            onFailed: function (info) {
+                log(info && info.error ? ("Background world failed. " + info.error) : "A background world failed.");
+            }
         });
-        if (!success) {
-            setState(STATE_FAILED, "Upload failed.");
-            setDebug("World Labs did not accept this scan yet.");
-            return false;
-        }
     } catch (error) {
         setState(STATE_FAILED, "Upload failed.");
         setDebug("World Labs could not finish this request. " + String(error));
@@ -435,9 +448,10 @@ async function submitScan() {
         return false;
     }
 
-    setState(STATE_COMPLETED, "World submitted successfully.");
-    setSecondary("Check Marble to view your new world.");
-    setDebug("Your world has been handed off to Marble.");
+    resetInternal();
+    setState(STATE_IDLE, "Ready for the next scan.");
+    setSecondary("Previous world is building in the background.");
+    setDebug("World submitted. You can start another scan.");
     return true;
 }
 
