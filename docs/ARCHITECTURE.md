@@ -15,7 +15,7 @@ That split keeps the Spectacles experience responsive while moving expensive wor
 ### 1. Lens Studio client
 
 Primary location:
-- `Assets/Scripts/WorldLabs/`
+- [`../lens/Assets/Scripts/WorldLabs/`](../lens/Assets/Scripts/WorldLabs/)
 
 Responsibilities:
 - setup panel and local settings persistence
@@ -25,16 +25,16 @@ Responsibilities:
 - background polling UX
 
 Key files:
-- `WorldLabsController.js`
-- `WorldLabsCameraCapture.js`
-- `WorldLabsBackend.js`
-- `WorldLabsSetupPanel.js`
-- `config.js`
+- [`../lens/Assets/Scripts/WorldLabs/WorldLabsController.js`](../lens/Assets/Scripts/WorldLabs/WorldLabsController.js)
+- [`../lens/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js`](../lens/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js)
+- [`../lens/Assets/Scripts/WorldLabs/WorldLabsBackend.js`](../lens/Assets/Scripts/WorldLabs/WorldLabsBackend.js)
+- [`../lens/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js`](../lens/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js)
+- [`../lens/Assets/Scripts/config.js`](../lens/Assets/Scripts/config.js)
 
 ### 2. Still-image backend
 
 Primary location:
-- `supabase/functions/world-labs-assist/`
+- [`../backend/supabase/functions/world-labs-assist/`](../backend/supabase/functions/world-labs-assist/)
 
 Responsibilities:
 - receive the four-image payload
@@ -47,9 +47,9 @@ This is the active production path in the current app.
 ### 3. Video backend scaffold
 
 Primary locations:
-- `supabase/functions/world-labs-video/`
-- `supabase/sql/`
-- `video-worker/`
+- [`../backend/supabase/functions/world-labs-video/`](../backend/supabase/functions/world-labs-video/)
+- [`../backend/supabase/sql/`](../backend/supabase/sql/)
+- [`../workers/video-worker/`](../workers/video-worker/)
 
 Responsibilities:
 - create and track video jobs
@@ -98,7 +98,7 @@ This path is scaffolded and deployable on the backend side, but not fully wired 
 
 ## Related Docs
 
-- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
-- [DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
-- [REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
-- [video-worker/README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker/README.md)
+- [`../README.md`](../README.md)
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+- [`REPO_STRUCTURE.md`](./REPO_STRUCTURE.md)
+- [`../workers/video-worker/README.md`](../workers/video-worker/README.md)

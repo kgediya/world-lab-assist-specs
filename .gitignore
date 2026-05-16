@@ -23,8 +23,11 @@ Workspaces/**
 # Lens Studio local/cache artifacts
 Cache/
 PluginsUserPreferences/
+lens/Cache/
+lens/PluginsUserPreferences/
 *.supabaseProject
 *.esproj.*.lock
+lens/*.esproj.*.lock
 *.lsproj.user
 *.esproj.user
 
@@ -49,6 +52,7 @@ venv/
 .env
 .env.*
 *.env
+!workers/video-worker/.env.example
 *.secret
 *.secrets
 *.key
@@ -61,6 +65,11 @@ supabase/.env.*
 supabase/.temp/
 supabase/.branches/
 supabase/.secrets/
+backend/supabase/.env
+backend/supabase/.env.*
+backend/supabase/.temp/
+backend/supabase/.branches/
+backend/supabase/.secrets/
 service_role.txt
 anon_key.txt
 supabase-service-role.txt
@@ -69,3 +78,9 @@ supabase-anon-key.txt
 # Large local capture/test assets
 *.ply
 *.ply.meta
+
+# Lens Studio project paths after repo split
+lens/Workspaces/**
+lens/Support/**
+/lens/jsconfig.json
+/lens/tsconfig.json

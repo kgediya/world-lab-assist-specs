@@ -18,21 +18,19 @@ Try to keep a change scoped to one of those areas unless a broader refactor is c
 ## Repo Orientation
 
 Start here:
-- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
-- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
-- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
-- [docs/REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
+- [`README.md`](./README.md)
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)
+- [`docs/REPO_STRUCTURE.md`](./docs/REPO_STRUCTURE.md)
 
 Key source areas:
-- `Assets/`
-- `Assets/Scripts/WorldLabs/`
-- `supabase/functions/`
-- `supabase/sql/`
-- `video-worker/`
+- [`lens/`](./lens/)
+- [`backend/`](./backend/)
+- [`workers/`](./workers/)
 
 ## Workflow
 
-1. Work inside the `WLAO` project folder only.
+1. Work inside the `WLAO` repo only.
 2. Keep changes readable and production-minded.
 3. Avoid committing local cache, workspace noise, or generated temporary files.
 4. Keep secrets and environment-specific assets out of git.
@@ -40,7 +38,7 @@ Key source areas:
 
 ## Lens Studio Guidelines
 
-- Prefer editing files under `Assets/` and avoid relying on `Cache/`.
+- Prefer editing files under [`lens/Assets/`](./lens/Assets/) and avoid relying on cache output.
 - Keep wearable UI copy short, calm, and easy to read.
 - Prefer focused script changes over scene-wide churn when possible.
 - If you change inspector wiring expectations, document that clearly in the PR.

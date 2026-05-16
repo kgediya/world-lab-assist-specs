@@ -1,11 +1,11 @@
 # Support
 
 For help with WLAO, start with:
-- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
-- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
-- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
-- [docs/REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
-- [video-worker/README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker/README.md)
+- [`README.md`](./README.md)
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)
+- [`docs/REPO_STRUCTURE.md`](./docs/REPO_STRUCTURE.md)
+- [`workers/video-worker/README.md`](./workers/video-worker/README.md)
 
 ## Common Troubleshooting Areas
 
@@ -37,7 +37,7 @@ Check:
 
 Check:
 - the Supabase Storage bucket exists
-- the SQL table from `supabase/sql/worldlabs_video_jobs.sql` exists
+- the SQL table from [`backend/supabase/sql/worldlabs_video_jobs.sql`](./backend/supabase/sql/worldlabs_video_jobs.sql) exists
 - `world-labs-video` is deployed
 - `VIDEO_WORKER_URL` is set
 - the worker `/health` endpoint responds
@@ -61,4 +61,4 @@ Helpful details include:
 - exact error text
 - whether the problem happened in preview or on Spectacles
 
-For security-sensitive issues, use [SECURITY.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SECURITY.md) instead of posting sensitive details publicly.
+For security-sensitive issues, use [`SECURITY.md`](./SECURITY.md) instead of posting sensitive details publicly.

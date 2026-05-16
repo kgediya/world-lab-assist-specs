@@ -42,6 +42,7 @@ CollapsedEntities:
       - Opacity Textures Collection.lspkg/Textures/star_mask.pvr
       - Opacity Textures Collection.lspkg/Textures/zigzag.png
       - Opacity Textures Collection.lspkg/package.native
+      - Scene.scene
       - Scripts/WorldLabs/WorldLabsBackend.js
       - Scripts/WorldLabs/WorldLabsCameraCapture.js
       - Scripts/WorldLabs/WorldLabsController.js
@@ -639,7 +640,6 @@ CollapsedEntities:
       - SupabaseClient.lspkg/polyfills/urlsearchparams.d.ts
       - SupabaseClient.lspkg/supabase-snapcloud.d.ts
       - SupabaseClient.lspkg/supabase-snapcloud.js
-      - SupabaseProject Lucid Weave.supabaseProject
       - UI Elements/Done.png
       - UI Elements/Reset.png
       - UI Elements/Settings.png

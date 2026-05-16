@@ -35,8 +35,8 @@ The worker is responsible for:
 ## Related Repo Pieces
 
 This worker expects these backend pieces to exist:
-- [supabase/functions/world-labs-video/index.ts](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-video/index.ts)
-- [supabase/sql/worldlabs_video_jobs.sql](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/sql/worldlabs_video_jobs.sql)
+- [`../../backend/supabase/functions/world-labs-video/index.ts`](../../backend/supabase/functions/world-labs-video/index.ts)
+- [`../../backend/supabase/sql/worldlabs_video_jobs.sql`](../../backend/supabase/sql/worldlabs_video_jobs.sql)
 
 ## Expected Storage Layout
 
@@ -105,6 +105,6 @@ Those pieces remain lens-side or Edge Function responsibilities.
 
 ## Related Docs
 
-- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
-- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
-- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
+- [`../../README.md`](../../README.md)
+- [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)
+- [`../../docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md)

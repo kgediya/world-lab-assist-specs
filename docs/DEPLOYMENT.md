@@ -12,7 +12,7 @@ You can deploy only the still-image path if you want the current app behavior.
 ## Still-Image Path
 
 Deploy:
-- `supabase/functions/world-labs-assist/index.ts`
+- [`../backend/supabase/functions/world-labs-assist/index.ts`](../backend/supabase/functions/world-labs-assist/index.ts)
 
 Required env vars:
 - `WORLDLABS_API_KEY` if you want a backend default key
@@ -22,21 +22,21 @@ The lens can also send a user-provided API key directly.
 ## Video Path
 
 Deploy all of the following:
-- `supabase/sql/worldlabs_video_jobs.sql`
-- `supabase/functions/world-labs-video/index.ts`
-- `video-worker/`
+- [`../backend/supabase/sql/worldlabs_video_jobs.sql`](../backend/supabase/sql/worldlabs_video_jobs.sql)
+- [`../backend/supabase/functions/world-labs-video/index.ts`](../backend/supabase/functions/world-labs-video/index.ts)
+- [`../workers/video-worker/`](../workers/video-worker/)
 
 ## Supabase SQL
 
 Run:
-- `supabase/sql/worldlabs_video_jobs.sql`
+- [`../backend/supabase/sql/worldlabs_video_jobs.sql`](../backend/supabase/sql/worldlabs_video_jobs.sql)
 
 This creates the `worldlabs_video_jobs` table used by the video path.
 
 ## Edge Function: `world-labs-video`
 
 Deploy:
-- `supabase/functions/world-labs-video/index.ts`
+- [`../backend/supabase/functions/world-labs-video/index.ts`](../backend/supabase/functions/world-labs-video/index.ts)
 
 Required env vars:
 - `SUPABASE_URL`
@@ -57,7 +57,7 @@ Recommended defaults:
 - Railway for the fastest prototype deployment
 
 See:
-- [video-worker/README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker/README.md)
+- [`../workers/video-worker/README.md`](../workers/video-worker/README.md)
 
 ## Supabase Storage
 
@@ -80,7 +80,7 @@ Inside Lens Studio, make sure:
 If you are enabling only the current app flow:
 
 1. deploy `world-labs-assist`
-2. verify `config.js`
+2. verify [`../lens/Assets/Scripts/config.js`](../lens/Assets/Scripts/config.js)
 3. open the lens and test still-image submission
 
 If you are enabling the video scaffold too:
@@ -107,6 +107,6 @@ If a credential-bearing asset was ever committed:
 
 ## Related Docs
 
-- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
-- [ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
-- [REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
+- [`../README.md`](../README.md)
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- [`REPO_STRUCTURE.md`](./REPO_STRUCTURE.md)

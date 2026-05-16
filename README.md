@@ -4,19 +4,20 @@ WLAO is an open-source Spectacles + Lens Studio app for turning real spaces into
 
 Created by Krunal MB Gediya, also known as Krazyy Krunal.
 
-## What This Repo Contains
+## Overview
 
-WLAO is intentionally split into a few clear layers:
+WLAO is structured as a multi-part open-source project:
 
-- a wearable Lens Studio capture experience
-- a still-image Supabase Edge Function used by the current app flow
-- an optional video backend scaffold built around Supabase + a Docker FFmpeg worker
+- [`lens/`](./lens/) contains the wearable Spectacles app
+- [`backend/`](./backend/) contains Supabase Edge Functions and SQL
+- [`workers/`](./workers/) contains deployable backend workers
+- [`docs/`](./docs/) contains architecture and deployment guides
 
-The still-image flow is the active app today. The video path is scaffolded for contributors who want to push the project further.
+The current working app uses the still-image path. The video path is scaffolded and ready for backend-side experimentation.
 
 ## Current App Flow
 
-1. Open the lens on Spectacles.
+1. Open [`lens/WLAO.esproj`](./lens/WLAO.esproj) in Lens Studio.
 2. If no World Labs API key is configured, the setup panel opens first.
 3. Enter the API key and choose a model:
    - `Mini` -> `Marble 0.1-mini`
@@ -30,32 +31,30 @@ The still-image flow is the active app today. The video path is scaffolded for c
 
 ## Project Structure
 
-- [Assets](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets)
-  Lens scene assets, UI assets, and app scripts.
-- [Assets/Scripts/WorldLabs](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs)
-  The main lens-side runtime logic.
-- [supabase/functions/world-labs-assist](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-assist)
+- [`lens/`](./lens/)
+  Lens Studio project files, scene assets, scripts, UI assets, and project support files.
+- [`backend/supabase/functions/world-labs-assist/`](./backend/supabase/functions/world-labs-assist/)
   The active still-image Edge Function.
-- [supabase/functions/world-labs-video](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-video)
+- [`backend/supabase/functions/world-labs-video/`](./backend/supabase/functions/world-labs-video/)
   Video-job orchestration Edge Function scaffold.
-- [supabase/sql](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/sql)
-  SQL needed by backend pieces such as the video jobs table.
-- [video-worker](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker)
-  Deployable Docker-based FFmpeg worker for the future video path.
-- [docs](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs)
-  Architecture, deployment, and repo-structure documentation.
+- [`backend/supabase/sql/`](./backend/supabase/sql/)
+  SQL used by backend features such as the video jobs table.
+- [`workers/video-worker/`](./workers/video-worker/)
+  Deployable Docker-based FFmpeg worker for the video-generation path.
+- [`docs/`](./docs/)
+  Architecture, deployment, and repo-structure notes.
 
 ## Core Lens Scripts
 
-- [config.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/config.js)
+- [`lens/Assets/Scripts/config.js`](./lens/Assets/Scripts/config.js)
   Project-level defaults and backend function names.
-- [WorldLabsController.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsController.js)
+- [`lens/Assets/Scripts/WorldLabs/WorldLabsController.js`](./lens/Assets/Scripts/WorldLabs/WorldLabsController.js)
   Main app state machine and UI flow.
-- [WorldLabsCameraCapture.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js)
+- [`lens/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js`](./lens/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js)
   Camera capture logic, heading anchoring, and preview/device behavior.
-- [WorldLabsBackend.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsBackend.js)
+- [`lens/Assets/Scripts/WorldLabs/WorldLabsBackend.js`](./lens/Assets/Scripts/WorldLabs/WorldLabsBackend.js)
   Lens-side submission and background polling transport.
-- [WorldLabsSetupPanel.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js)
+- [`lens/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js`](./lens/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js)
   API key + model settings flow with local persistence.
 
 ## Backend Paths
@@ -86,7 +85,7 @@ The backend pieces are present in the repo, but the lens-side recording and fram
 
 ## Setup
 
-1. Open `WLAO` in Lens Studio.
+1. Open [`lens/WLAO.esproj`](./lens/WLAO.esproj) in Lens Studio.
 2. Make sure the project is configured for Spectacles.
 3. Assign required scene references for:
    - `WorldLabsController`
@@ -96,7 +95,7 @@ The backend pieces are present in the repo, but the lens-side recording and fram
 4. Assign required Snap resources such as:
    - `InternetModule`
    - your local `SupabaseProject` asset
-5. Verify [config.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/config.js) matches your backend deployment.
+5. Verify [`lens/Assets/Scripts/config.js`](./lens/Assets/Scripts/config.js) matches your backend deployment.
 6. Deploy the backend function(s) you need.
 
 ## Billing Note
@@ -138,13 +137,13 @@ Actual Spectacles are required for:
 
 ## Documentation
 
-- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
-- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
-- [docs/REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
-- [video-worker/README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker/README.md)
-- [CONTRIBUTING.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CONTRIBUTING.md)
-- [SECURITY.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SECURITY.md)
-- [SUPPORT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SUPPORT.md)
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)
+- [`docs/REPO_STRUCTURE.md`](./docs/REPO_STRUCTURE.md)
+- [`workers/video-worker/README.md`](./workers/video-worker/README.md)
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- [`SECURITY.md`](./SECURITY.md)
+- [`SUPPORT.md`](./SUPPORT.md)
 
 ## Tech Stack Documentation
 
@@ -185,11 +184,11 @@ Actual Spectacles are required for:
 
 ## Contributing and Support
 
-- Contribution guidelines: [CONTRIBUTING.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CONTRIBUTING.md)
-- Community expectations: [CODE_OF_CONDUCT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CODE_OF_CONDUCT.md)
-- Security reporting: [SECURITY.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SECURITY.md)
-- Support notes: [SUPPORT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SUPPORT.md)
+- Contribution guidelines: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- Community expectations: [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+- Security reporting: [`SECURITY.md`](./SECURITY.md)
+- Support notes: [`SUPPORT.md`](./SUPPORT.md)
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/LICENSE) for details.
+This project is licensed under the MIT License. See [`LICENSE`](./LICENSE) for details.

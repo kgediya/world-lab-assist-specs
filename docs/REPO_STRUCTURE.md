@@ -6,65 +6,63 @@ WLAO is laid out to keep the wearable app, backend functions, and optional video
 
 ## Top-Level Map
 
-- `Assets/`
-  Lens Studio scene assets, scripts, UI assets, and project-side resources.
-- `docs/`
-  Human-facing architecture, deployment, and repo-structure guides.
-- `supabase/functions/`
-  Edge Functions used by the project.
-- `supabase/sql/`
-  SQL setup files used by backend features.
-- `video-worker/`
-  Deployable Python + FFmpeg worker for the video-generation path.
-- `Workspaces/`
-  Local Lens Studio workspace state. Usually not something contributors should change intentionally.
-- `Cache/`
-  Local generated editor/cache files. Not a source area.
+- [`../lens/`](../lens/)
+  Lens Studio project files and app-side assets.
+- [`../backend/`](../backend/)
+  Supabase Edge Functions and SQL setup.
+- [`../workers/`](../workers/)
+  Deployable non-Supabase services such as the FFmpeg worker.
+- [`../docs/`](../docs/)
+  Human-facing architecture and deployment guides.
 
-## Lens App Area
+## Lens Area
 
-- `Assets/Scripts/config.js`
-  Shared project-level settings.
-- `Assets/Scripts/WorldLabs/`
-  Main runtime scripts for capture, UI, settings, and backend calls.
-- `Assets/UI Elements/`
-  Image assets used by the lens UI.
+- [`../lens/WLAO.esproj`](../lens/WLAO.esproj)
+  Main Lens Studio project file.
+- [`../lens/Assets/`](../lens/Assets/)
+  Scene assets, scripts, materials, and UI resources.
+- [`../lens/Packages/`](../lens/Packages/)
+  Lens Studio packages used by the project.
+- [`../lens/Support/`](../lens/Support/)
+  Local project support files used by Lens Studio.
+- [`../lens/Workspaces/`](../lens/Workspaces/)
+  Lens Studio workspace state for contributors who track it.
 
 ## Backend Area
 
-- `supabase/functions/world-labs-assist/index.ts`
+- [`../backend/supabase/functions/world-labs-assist/index.ts`](../backend/supabase/functions/world-labs-assist/index.ts)
   Current still-image orchestration function.
-- `supabase/functions/world-labs-video/index.ts`
+- [`../backend/supabase/functions/world-labs-video/index.ts`](../backend/supabase/functions/world-labs-video/index.ts)
   Video-job orchestration scaffold.
-- `supabase/sql/worldlabs_video_jobs.sql`
+- [`../backend/supabase/sql/worldlabs_video_jobs.sql`](../backend/supabase/sql/worldlabs_video_jobs.sql)
   SQL for tracking video jobs.
 
-## Video Worker Area
+## Worker Area
 
-- `video-worker/app/main.py`
+- [`../workers/video-worker/app/main.py`](../workers/video-worker/app/main.py)
   FastAPI entrypoint and health route.
-- `video-worker/app/worker.py`
+- [`../workers/video-worker/app/worker.py`](../workers/video-worker/app/worker.py)
   Video job processing flow.
-- `video-worker/app/storage.py`
+- [`../workers/video-worker/app/storage.py`](../workers/video-worker/app/storage.py)
   Supabase DB and Storage helpers.
-- `video-worker/app/worldlabs.py`
+- [`../workers/video-worker/app/worldlabs.py`](../workers/video-worker/app/worldlabs.py)
   World Labs upload and generation helpers.
-- `video-worker/Dockerfile`
+- [`../workers/video-worker/Dockerfile`](../workers/video-worker/Dockerfile)
   Deployable container definition.
 
 ## Documentation Area
 
-- `README.md`
+- [`../README.md`](../README.md)
   Best starting point for understanding the project.
-- `CONTRIBUTING.md`
+- [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
   Contribution expectations and workflow notes.
-- `SECURITY.md`
+- [`../SECURITY.md`](../SECURITY.md)
   Secret-handling and vulnerability guidance.
-- `SUPPORT.md`
+- [`../SUPPORT.md`](../SUPPORT.md)
   Troubleshooting and where to look first.
-- `docs/ARCHITECTURE.md`
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md)
   Runtime and systems overview.
-- `docs/DEPLOYMENT.md`
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md)
   Backend deployment paths.
 
 ## Things That Must Stay Local
