@@ -3,17 +3,20 @@
 // @input string projectUrlOverride = "https://ehhntqueiwfbxcvnnbdl.snapcloud.dev"
 // @input string startScanFunctionName = "world-labs-assist"
 // @input string statusFunctionName = "world-labs-assist"
+// @input string videoFunctionName = "world-labs-video"
 // @input string fallbackDisplayName = "World Labs Assist Capture"
 // @input string fallbackTextPrompt = "A realistic immersive reconstruction of the scanned environment"
 // @input string modelName = "Marble 0.1-mini"
 // @input bool includeAuthToken = true
 // @input int pollIntervalMs = 10000 {"widget":"slider","min":2000,"max":30000,"step":1000}
 // @input int maxPollAttempts = 36 {"widget":"slider","min":3,"max":120,"step":1}
+// @input int videoFrameBatchSize = 10 {"widget":"slider","min":1,"max":25,"step":1}
 // @input bool useMockResponses = false
 // @input bool debugLogs = false
 
 var supabaseClient = null;
 var DEFAULT_FUNCTION_NAME = "world-labs-assist";
+var DEFAULT_VIDEO_FUNCTION_NAME = "world-labs-video";
 var MAX_WORLDLABS_IMAGES = 4;
 var backgroundJobs = [];
 var nextBackgroundJobId = 1;
@@ -59,6 +62,9 @@ function summarizeJson(data) {
     }
     if (data.operationId || data.operation_id) {
         return "operation=" + (data.operationId || data.operation_id);
+    }
+    if (data.jobId) {
+        return "job=" + data.jobId;
     }
     if (data.worldUrl || data.world_marble_url) {
         return "worldUrl=" + (data.worldUrl || data.world_marble_url);
@@ -154,6 +160,10 @@ function getFunctionName(kind) {
         return normalizeFunctionName(script.startScanFunctionName || getConfig("edgeFunctions.startScanPath", DEFAULT_FUNCTION_NAME));
     }
     return normalizeFunctionName(script.statusFunctionName || getConfig("edgeFunctions.statusPath", DEFAULT_FUNCTION_NAME));
+}
+
+function getVideoFunctionName() {
+    return script.videoFunctionName || getConfig("edgeFunctions.videoPath", DEFAULT_VIDEO_FUNCTION_NAME) || DEFAULT_VIDEO_FUNCTION_NAME;
 }
 
 function getFunctionUrl(functionName) {
@@ -315,6 +325,16 @@ function getAzimuthFromYaw(yawDeg) {
     return Math.round(normalized);
 }
 
+function splitIntoBatches(items, batchSize) {
+    var batches = [];
+    var size = Math.max(1, batchSize || 1);
+    var index;
+    for (index = 0; index < items.length; index += size) {
+        batches.push(items.slice(index, index + size));
+    }
+    return batches;
+}
+
 function pushIfPresent(target, frame) {
     if (frame && target.indexOf(frame) === -1 && target.length < MAX_WORLDLABS_IMAGES) {
         target.push(frame);
@@ -409,6 +429,56 @@ function buildStartPayload(manifest, frames) {
 
 async function createSession(payload) {
     return payload && payload.localSessionId ? payload.localSessionId : ("session_" + Math.floor(getTime() * 1000));
+}
+
+function buildVideoFramePayload(frame, index) {
+    return {
+        fileName: (index + 1 < 10 ? "00000" : index + 1 < 100 ? "0000" : index + 1 < 1000 ? "000" : index + 1 < 10000 ? "00" : index + 1 < 100000 ? "0" : "") + (index + 1) + "." + (frame.encoding || "jpg"),
+        mimeType: frame.encoding === "png" ? "image/png" : "image/jpeg",
+        base64Data: frame.base64Data
+    };
+}
+
+async function uploadVideoFrames(manifest, frames, callbacks) {
+    var startPayload = {
+        action: "upload_video_frames",
+        sessionId: manifest && manifest.localSessionId ? manifest.localSessionId : ("session_" + Math.floor(getTime() * 1000)),
+        storagePrefix: manifest && manifest.videoStoragePrefix ? manifest.videoStoragePrefix : ("video-sessions/" + (manifest && manifest.localSessionId ? manifest.localSessionId : ("session_" + Math.floor(getTime() * 1000))))
+    };
+    manifest.videoStoragePrefix = startPayload.storagePrefix;
+
+    var preparedFrames = [];
+    var i;
+    for (i = 0; i < frames.length; i++) {
+        preparedFrames.push(buildVideoFramePayload(frames[i], i));
+    }
+
+    var batches = splitIntoBatches(preparedFrames, script.videoFrameBatchSize || 10);
+    var uploadedCount = 0;
+    var batchIndex;
+    for (batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        if (callbacks && callbacks.onStatus) {
+            callbacks.onStatus({
+                phase: "uploading_frames",
+                message: "Uploading video frames " + (batchIndex + 1) + "/" + batches.length + "."
+            });
+        }
+
+        var response = await sendEdgeFunctionRequest(getVideoFunctionName(), {
+            action: "upload_video_frames",
+            sessionId: startPayload.sessionId,
+            storagePrefix: startPayload.storagePrefix,
+            frames: batches[batchIndex]
+        });
+
+        uploadedCount += response && response.uploadedCount ? response.uploadedCount : batches[batchIndex].length;
+    }
+
+    return {
+        sessionId: startPayload.sessionId,
+        storagePrefix: startPayload.storagePrefix,
+        uploadedCount: uploadedCount
+    };
 }
 
 async function uploadSession(manifest, frames, onProgress) {
@@ -556,6 +626,104 @@ async function submitSessionInBackground(manifest, frames, callbacks) {
     };
 }
 
+async function submitVideoSessionInBackground(manifest, frames, callbacks) {
+    callbacks = callbacks || {};
+
+    if (script.useMockResponses) {
+        var mockJobId = "mock_video_job_" + Math.floor(getTime() * 1000);
+        if (callbacks.onSubmitted) {
+            callbacks.onSubmitted({
+                jobId: mockJobId,
+                message: "Preview mode is on. Video generation is simulated."
+            });
+        }
+        wait(1000).then(function () {
+            if (callbacks.onCompleted) {
+                callbacks.onCompleted({
+                    jobId: mockJobId,
+                    worldUrl: "https://marble.worldlabs.ai/world/mock-video",
+                    videoUrl: "https://example.com/mock-video.mp4",
+                    message: "Preview video world finished in the background."
+                });
+            }
+        });
+        return {
+            jobId: mockJobId,
+            worldId: "",
+            worldUrl: "",
+            videoUrl: ""
+        };
+    }
+
+    var apiKey = getResolvedApiKey();
+    if (!apiKey) {
+        lastDebug.errorMessage = "Add your World Labs API key in Settings first.";
+        throw new Error(lastDebug.errorMessage);
+    }
+    if (!frames || !frames.length) {
+        lastDebug.errorMessage = "No video frames are ready yet.";
+        throw new Error(lastDebug.errorMessage);
+    }
+
+    var modelName = getResolvedModelName();
+    if (callbacks.onStatus) {
+        callbacks.onStatus({
+            phase: "uploading_frames",
+            message: "Preparing a short video scan with " + sanitizeModelName(modelName) + "."
+        });
+    }
+
+    var uploadResult = await uploadVideoFrames(manifest, frames, callbacks);
+    manifest.videoStoragePrefix = uploadResult.storagePrefix;
+
+    if (callbacks.onStatus) {
+        callbacks.onStatus({
+            phase: "starting_video_job",
+            message: "Starting the World Labs video job."
+        });
+    }
+
+    var startResponse = await sendEdgeFunctionRequest(getVideoFunctionName(), {
+        action: "start_video_job",
+        sessionId: manifest.localSessionId,
+        storagePrefix: manifest.videoStoragePrefix,
+        frameCount: frames.length,
+        fps: manifest.videoFps || 4,
+        durationSec: manifest.videoDurationSec || 15,
+        modelName: modelName,
+        apiKey: apiKey
+    });
+
+    var job = {
+        id: nextBackgroundJobId++,
+        manifest: manifest,
+        jobId: startResponse.jobId,
+        operationId: "",
+        worldId: "",
+        apiKey: apiKey,
+        callbacks: callbacks,
+        kind: "video",
+        startedAtMs: Math.floor(getTime() * 1000)
+    };
+    backgroundJobs.push(job);
+
+    if (callbacks.onSubmitted) {
+        callbacks.onSubmitted({
+            jobId: startResponse.jobId,
+            message: "Video scan submitted. Stitching and generation continue in the background."
+        });
+    }
+
+    pollBackgroundJob(job);
+
+    return {
+        jobId: startResponse.jobId,
+        worldId: "",
+        worldUrl: "",
+        videoUrl: ""
+    };
+}
+
 async function pollBackgroundJob(job) {
     var attempt;
     try {
@@ -569,14 +737,49 @@ async function pollBackgroundJob(job) {
                 });
             }
 
-            var statusResponse = await sendEdgeFunctionRequest(getFunctionName("status"), {
-                action: "status",
-                operationId: job.operationId,
-                worldId: job.worldId || null,
-                apiKey: job.apiKey
-            });
+            var statusResponse;
+            if (job.kind === "video") {
+                statusResponse = await sendEdgeFunctionRequest(getVideoFunctionName(), {
+                    action: "get_video_job",
+                    jobId: job.jobId
+                });
+            } else {
+                statusResponse = await sendEdgeFunctionRequest(getFunctionName("status"), {
+                    action: "status",
+                    operationId: job.operationId,
+                    worldId: job.worldId || null,
+                    apiKey: job.apiKey
+                });
+            }
 
-            if (statusResponse && statusResponse.done) {
+            if (job.kind === "video") {
+                if (statusResponse && statusResponse.operationId) {
+                    job.operationId = statusResponse.operationId;
+                }
+                if (statusResponse && statusResponse.status === "completed") {
+                    job.manifest.worldLabsWorldId = statusResponse.worldId || "";
+                    job.manifest.worldLabsWorldUrl = statusResponse.worldUrl || "";
+                    job.manifest.videoUrl = statusResponse.videoUrl || "";
+                    lastDebug.worldId = job.manifest.worldLabsWorldId || "";
+                    lastDebug.worldUrl = job.manifest.worldLabsWorldUrl || "";
+
+                    if (job.callbacks && job.callbacks.onCompleted) {
+                        job.callbacks.onCompleted({
+                            jobId: job.jobId,
+                            operationId: job.operationId || "",
+                            worldId: job.manifest.worldLabsWorldId || "",
+                            worldUrl: job.manifest.worldLabsWorldUrl || "",
+                            videoUrl: job.manifest.videoUrl || "",
+                            message: "A background video world is ready."
+                        });
+                    }
+                    removeBackgroundJob(job.id);
+                    return;
+                }
+                if (statusResponse && statusResponse.status === "failed") {
+                    throw new Error(statusResponse.errorMessage || "A background video world could not finish.");
+                }
+            } else if (statusResponse && statusResponse.done) {
                 job.manifest.worldLabsOperation = statusResponse.operation || statusResponse;
                 job.manifest.worldLabsWorldId = statusResponse.worldId || (statusResponse.operation && statusResponse.operation.metadata ? statusResponse.operation.metadata.world_id : "");
                 job.manifest.worldLabsWorldUrl = statusResponse.worldUrl || (statusResponse.operation && statusResponse.operation.response ? statusResponse.operation.response.world_marble_url : "");
@@ -628,6 +831,7 @@ async function finalizeSession(manifest) {
 script.createSession = createSession;
 script.uploadSession = uploadSession;
 script.submitSessionInBackground = submitSessionInBackground;
+script.submitVideoSessionInBackground = submitVideoSessionInBackground;
 script.finalizeSession = finalizeSession;
 script.buildStartPayload = buildStartPayload;
 script.getFunctionUrl = getFunctionUrl;

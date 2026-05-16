@@ -10,9 +10,11 @@
 // @input SceneObject submitButton
 // @input SceneObject resetButton
 // @input SceneObject settingsButton
+// @input int captureMode = 0 {"widget":"combobox","values":[{"label":"Four Views","value":0},{"label":"Short Video","value":1}]}
 // @input string sessionLabelPrefix = "worldlabs"
 // @input int maxAcceptedFrames = 12 {"widget":"slider","min":4,"max":40,"step":1}
 // @input float targetCoveragePercent = 100 {"widget":"slider","min":25,"max":100,"step":1}
+// @input int videoDurationSec = 15 {"widget":"slider","min":10,"max":30,"step":1}
 // @input float buttonScaleLerpSpeed = 8 {"widget":"slider","min":1,"max":20,"step":0.5}
 // @input float hiddenButtonScale = 0.001 {"widget":"slider","min":0.001,"max":0.2,"step":0.001}
 // @input bool autoCreateRemoteSession = true
@@ -25,11 +27,14 @@ var STATE_REVIEW = "review";
 var STATE_UPLOADING = "uploading";
 var STATE_COMPLETED = "completed";
 var STATE_FAILED = "failed";
+var CAPTURE_MODE_FOUR_VIEWS = 0;
+var CAPTURE_MODE_SHORT_VIDEO = 1;
 
 var REQUIRED_DIRECTIONS = ["front", "right", "back", "left"];
 
 var state = STATE_IDLE;
 var acceptedFrames = [];
+var recordedVideoFrames = [];
 var coveredSectors = {};
 var manifest = null;
 var buttonBindings = [];
@@ -47,6 +52,10 @@ function log(message) {
 function createSessionId() {
     var prefix = script.sessionLabelPrefix || "worldlabs";
     return prefix + "_" + nowMs();
+}
+
+function isVideoMode() {
+    return script.captureMode === CAPTURE_MODE_SHORT_VIDEO;
 }
 
 function getCameraCapture() {
@@ -178,6 +187,16 @@ function setProgress() {
     if (!script.progressText) {
         return;
     }
+    if (isVideoMode() && !manifest) {
+        script.progressText.text = "Video 0.0/" + (script.videoDurationSec || 15) + "s | Frames 0";
+        return;
+    }
+    if (isVideoMode() && manifest && (state === STATE_CAPTURING || state === STATE_REVIEW || state === STATE_UPLOADING)) {
+        var durationSec = manifest.videoDurationSec || script.videoDurationSec || 15;
+        var recordedSec = manifest.recordedDurationSec || 0;
+        script.progressText.text = "Video " + recordedSec.toFixed(1) + "/" + durationSec + "s | Frames " + recordedVideoFrames.length;
+        return;
+    }
     script.progressText.text = "Views " + getCompletedDirectionCount() + "/" + REQUIRED_DIRECTIONS.length + " | Frames " + acceptedFrames.length;
 }
 
@@ -253,6 +272,18 @@ function refreshCaptureUi() {
         return;
     }
 
+    if (isVideoMode()) {
+        if (state === STATE_REVIEW) {
+            setSecondary("Recording ready. " + recordedVideoFrames.length + " frames captured.");
+            return;
+        }
+
+        var videoCamera = getCameraCapture();
+        var videoGuidance = videoCamera && videoCamera.getLiveGuidance ? videoCamera.getLiveGuidance() : null;
+        setSecondary(videoGuidance && videoGuidance.message ? videoGuidance.message : "Recording your short spatial clip.");
+        return;
+    }
+
     if (state === STATE_REVIEW) {
         setSecondary("Views ready. " + getDirectionChecklist());
         return;
@@ -268,6 +299,7 @@ function refreshCaptureUi() {
 
 function resetInternal() {
     acceptedFrames = [];
+    recordedVideoFrames = [];
     coveredSectors = {};
     manifest = null;
     setDebug("");
@@ -336,6 +368,9 @@ async function startScan() {
         targetCoveragePercent: script.targetCoveragePercent,
         coveragePercent: 0,
         acceptedFrameCount: 0,
+        captureMode: isVideoMode() ? "video" : "still",
+        videoDurationSec: script.videoDurationSec,
+        recordedDurationSec: 0,
         worldLabsWorldId: "",
         worldLabsWorldUrl: ""
     };
@@ -346,7 +381,7 @@ async function startScan() {
     }
 
     var cameraCapture = getCameraCapture();
-    if (cameraCapture && cameraCapture.setCaptureAnchorFromCurrentPose) {
+    if (cameraCapture && cameraCapture.setCaptureAnchorFromCurrentPose && !isVideoMode()) {
         cameraCapture.setCaptureAnchorFromCurrentPose();
     }
 
@@ -364,7 +399,18 @@ async function startScan() {
         }
     }
 
-    setState(STATE_CAPTURING, "Scan started.");
+    setState(STATE_CAPTURING, isVideoMode() ? "Recording started." : "Scan started.");
+    if (isVideoMode()) {
+        if (!cameraCapture || !cameraCapture.startVideoRecording) {
+            setState(STATE_FAILED, "Video capture is not ready.");
+            setDebug("The camera script is missing short video recording support.");
+            return false;
+        }
+        cameraCapture.startVideoRecording({
+            durationSec: script.videoDurationSec,
+            sessionId: manifest.localSessionId
+        });
+    }
     refreshCaptureUi();
     return true;
 }
@@ -380,7 +426,43 @@ function completeCapture(message) {
     refreshCaptureUi();
 }
 
+function applyModeSelection(nextMode) {
+    var normalizedMode = nextMode === CAPTURE_MODE_SHORT_VIDEO ? CAPTURE_MODE_SHORT_VIDEO : CAPTURE_MODE_FOUR_VIEWS;
+    if (script.captureMode === normalizedMode) {
+        if (state === STATE_IDLE) {
+            resetScan();
+        }
+        return normalizedMode;
+    }
+
+    script.captureMode = normalizedMode;
+    resetInternal();
+    if (state === STATE_CAPTURING || state === STATE_REVIEW || state === STATE_UPLOADING || state === STATE_PREPARING) {
+        setDebug("Capture mode changed. Start a new scan to use " + (isVideoMode() ? "video" : "photo") + " mode.");
+    }
+    resetScan();
+    return normalizedMode;
+}
+
+function setPhotoMode() {
+    return applyModeSelection(CAPTURE_MODE_FOUR_VIEWS);
+}
+
+function setVideoMode() {
+    return applyModeSelection(CAPTURE_MODE_SHORT_VIDEO);
+}
+
+function toggleCaptureMode() {
+    if (isVideoMode()) {
+        return setPhotoMode();
+    }
+    return setVideoMode();
+}
+
 function registerAcceptedFrame(frame) {
+    if (isVideoMode()) {
+        return false;
+    }
     if (state !== STATE_CAPTURING || !manifest) {
         return false;
     }
@@ -403,26 +485,59 @@ function registerAcceptedFrame(frame) {
     return true;
 }
 
+function registerVideoRecordingProgress(info) {
+    if (!isVideoMode() || state !== STATE_CAPTURING || !manifest) {
+        return;
+    }
+
+    manifest.recordedDurationSec = info && info.elapsedSec ? info.elapsedSec : 0;
+    refreshCaptureUi();
+}
+
+function registerCompletedVideoCapture(frames, meta) {
+    if (!isVideoMode() || state !== STATE_CAPTURING || !manifest) {
+        return false;
+    }
+
+    recordedVideoFrames = frames ? frames.slice(0) : [];
+    manifest.recordedDurationSec = meta && meta.durationSec ? meta.durationSec : script.videoDurationSec;
+    manifest.videoDurationSec = meta && meta.durationSec ? meta.durationSec : script.videoDurationSec;
+    manifest.videoFps = meta && meta.estimatedFps ? meta.estimatedFps : 4;
+    manifest.acceptedFrameCount = recordedVideoFrames.length;
+    manifest.updatedAtMs = nowMs();
+
+    if (!recordedVideoFrames.length) {
+        setState(STATE_FAILED, "No video frames were captured.");
+        setDebug("Try the recording again with preview streaming enabled.");
+        return false;
+    }
+
+    setState(STATE_REVIEW, "Short video is ready.");
+    refreshCaptureUi();
+    return true;
+}
+
 async function submitScan() {
-    if (state !== STATE_REVIEW || !manifest || !acceptedFrames.length) {
+    var framesReady = isVideoMode() ? recordedVideoFrames.length : acceptedFrames.length;
+    if (state !== STATE_REVIEW || !manifest || !framesReady) {
         setDebug("Finish the capture before creating your world.");
         return false;
     }
 
     var backend = getBackend();
-    if (!backend || !backend.submitSessionInBackground) {
+    if (!backend || (!isVideoMode() && !backend.submitSessionInBackground) || (isVideoMode() && !backend.submitVideoSessionInBackground)) {
         setState(STATE_FAILED, "Backend script is not ready.");
         return false;
     }
 
     var manifestForSubmission = manifest;
-    var framesForSubmission = acceptedFrames.slice(0);
+    var framesForSubmission = isVideoMode() ? recordedVideoFrames.slice(0) : acceptedFrames.slice(0);
 
     setState(STATE_UPLOADING, "Submitting your world...");
     setBackendDebugSummary("Working with World Labs.");
 
     try {
-        await backend.submitSessionInBackground(manifestForSubmission, framesForSubmission, {
+        await (isVideoMode() ? backend.submitVideoSessionInBackground : backend.submitSessionInBackground).call(backend, manifestForSubmission, framesForSubmission, {
             onStatus: function (info) {
                 if (state === STATE_UPLOADING) {
                     setSecondary(info && info.message ? info.message : "Submitting to World Labs.");
@@ -435,10 +550,10 @@ async function submitScan() {
                 log(info && info.message ? info.message : "World submitted. Generation continues in the background.");
             },
             onCompleted: function (info) {
-                log(info && info.worldUrl ? ("Background world ready. " + info.worldUrl) : "A background world is ready in Marble.");
+                log(info && info.worldUrl ? ("Background world ready. " + info.worldUrl) : (isVideoMode() ? "A background video world is ready in Marble." : "A background world is ready in Marble."));
             },
             onFailed: function (info) {
-                log(info && info.error ? ("Background world failed. " + info.error) : "A background world failed.");
+                log(info && info.error ? ("Background world failed. " + info.error) : (isVideoMode() ? "A background video world failed." : "A background world failed."));
             }
         });
     } catch (error) {
@@ -450,8 +565,8 @@ async function submitScan() {
 
     resetInternal();
     setState(STATE_IDLE, "Ready for the next scan.");
-    setSecondary("Previous world is building in the background.");
-    setDebug("World submitted. You can start another scan.");
+    setSecondary(isVideoMode() ? "Previous video world is building in the background." : "Previous world is building in the background.");
+    setDebug(isVideoMode() ? "Video submitted. You can start another scan." : "World submitted. You can start another scan.");
     return true;
 }
 
@@ -464,8 +579,8 @@ function resetScan() {
         openSettingsPanel();
         return;
     }
-    setState(STATE_IDLE, "Ready to scan.");
-    setSecondary("Capture four wide views.");
+    setState(STATE_IDLE, isVideoMode() ? "Ready to record." : "Ready to scan.");
+    setSecondary(isVideoMode() ? "Record a short 15-second spatial clip." : "Capture four wide views.");
 }
 
 script.startScan = startScan;
@@ -473,11 +588,16 @@ script.completeCapture = completeCapture;
 script.submitScan = submitScan;
 script.resetScan = resetScan;
 script.registerAcceptedFrame = registerAcceptedFrame;
+script.registerVideoRecordingProgress = registerVideoRecordingProgress;
+script.registerCompletedVideoCapture = registerCompletedVideoCapture;
 script.openSettings = openSettingsPanel;
+script.setPhotoMode = setPhotoMode;
+script.setVideoMode = setVideoMode;
+script.toggleCaptureMode = toggleCaptureMode;
 script.isCapturing = function () { return state === STATE_CAPTURING; };
 script.isSectorCovered = function (sectorId) { return !!coveredSectors[sectorId]; };
 script.getCoveragePercent = getCoveragePercent;
-script.getAcceptedFrameCount = function () { return acceptedFrames.length; };
+script.getAcceptedFrameCount = function () { return isVideoMode() ? recordedVideoFrames.length : acceptedFrames.length; };
 script.getManifest = function () { return manifest; };
 script.getState = function () { return state; };
 script.setDebug = setDebug;

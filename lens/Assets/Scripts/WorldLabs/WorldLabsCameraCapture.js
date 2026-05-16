@@ -17,6 +17,7 @@
 // @input float minPitchDeltaDeg = 6
 // @input float maxAngularVelocityDegPerSec = 140
 // @input float maxTranslationSpeedCmPerSec = 120
+// @input int videoFrameIntervalMs = 250 {"widget":"slider","min":100,"max":1000,"step":50}
 // @input bool debugLogs = false
 
 var cameraModule = require("LensStudio:CameraModule");
@@ -27,9 +28,15 @@ var lastAcceptedPose = null;
 var lastAcceptedDirectionId = "";
 var lastSampleAtMs = 0;
 var isCapturingStill = false;
+var isRecordingVideo = false;
+var isEncodingVideoFrame = false;
 var latestGuidance = null;
 var captureAnchorYawDeg = 0;
 var hasCaptureAnchor = false;
+var videoRecordingStartedAtMs = 0;
+var videoRecordingDurationMs = 15000;
+var lastVideoFrameAtMs = 0;
+var videoRecordedFrames = [];
 var DIRECTION_TARGETS = [
     { id: "front", label: "Front", yawDeg: 0 },
     { id: "right", label: "Right", yawDeg: 90 },
@@ -277,6 +284,14 @@ function encodeTexture(texture) {
     });
 }
 
+function padFrameIndex(index) {
+    var value = String(index);
+    while (value.length < 6) {
+        value = "0" + value;
+    }
+    return value;
+}
+
 async function requestStillImage() {
     var imageRequest = CameraModule.createImageRequest();
     if (imageRequest.resolution) {
@@ -367,6 +382,9 @@ async function tryCapture() {
     if (!controller || !controller.isCapturing || !controller.isCapturing()) {
         return;
     }
+    if (isRecordingVideo) {
+        return;
+    }
     if (isCapturingStill) {
         return;
     }
@@ -408,6 +426,83 @@ function startCamera() {
     log("camera ready for " + (editorMode ? "preview-texture fallback capture" : "still-image capture"));
 }
 
+async function captureVideoFrame() {
+    var texture = getFallbackTexture();
+    if (!texture || isEncodingVideoFrame) {
+        return;
+    }
+
+    isEncodingVideoFrame = true;
+    try {
+        var pose = getPoseSample();
+        var frameIndex = videoRecordedFrames.length + 1;
+        var base64Data = await encodeTexture(texture);
+        videoRecordedFrames.push({
+            id: "video_frame_" + padFrameIndex(frameIndex),
+            timestampMs: nowMs(),
+            base64Data: base64Data,
+            encoding: script.encodeAsPng ? "png" : "jpg",
+            width: texture && texture.getWidth ? texture.getWidth() : script.previewSmallerDimension,
+            height: texture && texture.getHeight ? texture.getHeight() : script.previewSmallerDimension,
+            pose: {
+                timestampMs: pose.timestampMs,
+                position: [pose.position.x, pose.position.y, pose.position.z],
+                rotation: [pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w],
+                forward: [pose.forward.x, pose.forward.y, pose.forward.z],
+                yawDeg: pose.yawDeg,
+                pitchDeg: pose.pitchDeg
+            }
+        });
+        lastVideoFrameAtMs = nowMs();
+    } catch (error) {
+        log("video frame capture failed: " + error);
+    } finally {
+        isEncodingVideoFrame = false;
+    }
+}
+
+function finishVideoRecording() {
+    if (!isRecordingVideo) {
+        return;
+    }
+
+    isRecordingVideo = false;
+    var controller = getController();
+    var durationSec = Math.max(0, (nowMs() - videoRecordingStartedAtMs) / 1000);
+    var estimatedFps = durationSec > 0 ? Math.max(1, Math.round(videoRecordedFrames.length / durationSec)) : 0;
+    if (controller && controller.registerCompletedVideoCapture) {
+        controller.registerCompletedVideoCapture(videoRecordedFrames, {
+            durationSec: durationSec,
+            estimatedFps: estimatedFps
+        });
+    }
+}
+
+async function updateVideoRecording() {
+    if (!isRecordingVideo) {
+        return;
+    }
+
+    var elapsedMs = nowMs() - videoRecordingStartedAtMs;
+    var controller = getController();
+    if (controller && controller.registerVideoRecordingProgress) {
+        controller.registerVideoRecordingProgress({
+            elapsedSec: Math.min(videoRecordingDurationMs / 1000, elapsedMs / 1000),
+            durationSec: videoRecordingDurationMs / 1000,
+            frameCount: videoRecordedFrames.length
+        });
+    }
+
+    if (elapsedMs >= videoRecordingDurationMs) {
+        finishVideoRecording();
+        return;
+    }
+
+    if (nowMs() - lastVideoFrameAtMs >= script.videoFrameIntervalMs) {
+        await captureVideoFrame();
+    }
+}
+
 function getSectorConfig() {
     return {
         yawSectorCount: DIRECTION_TARGETS.length,
@@ -421,6 +516,24 @@ function getNextTargetLabel() {
 }
 
 function getLiveGuidance() {
+    if (isRecordingVideo) {
+        var remainingSec = Math.max(0, (videoRecordingDurationMs - (nowMs() - videoRecordingStartedAtMs)) / 1000);
+        return {
+            message: "Recording... " + remainingSec.toFixed(1) + "s left.",
+            ready: false,
+            yawErrorDeg: 0,
+            pitchErrorDeg: 0,
+            turnDirection: "none",
+            turnStrength: 0,
+            pitchDirection: "none",
+            pitchStrength: 0,
+            showHorizontalArrow: false,
+            showVerticalArrow: false,
+            isCapturingStill: false,
+            isRecordingVideo: true
+        };
+    }
+
     var pose = getPoseSample();
     var guidance = buildGuidance(pose);
     latestGuidance = guidance;
@@ -454,8 +567,31 @@ function resetCaptureState() {
     lastAcceptedDirectionId = "";
     lastSampleAtMs = 0;
     isCapturingStill = false;
+    isRecordingVideo = false;
+    isEncodingVideoFrame = false;
     captureAnchorYawDeg = 0;
     hasCaptureAnchor = false;
+    videoRecordingStartedAtMs = 0;
+    videoRecordingDurationMs = 15000;
+    lastVideoFrameAtMs = 0;
+    videoRecordedFrames = [];
+}
+
+function startVideoRecording(options) {
+    if (!previewTexture) {
+        startPreviewCamera();
+    }
+
+    if (!getFallbackTexture()) {
+        throw new Error("Preview texture is unavailable. Enable preview streaming for video capture.");
+    }
+
+    videoRecordedFrames = [];
+    isRecordingVideo = true;
+    isEncodingVideoFrame = false;
+    videoRecordingStartedAtMs = nowMs();
+    videoRecordingDurationMs = Math.max(1000, Math.floor(((options && options.durationSec) || 15) * 1000));
+    lastVideoFrameAtMs = 0;
 }
 
 script.startCamera = startCamera;
@@ -464,11 +600,13 @@ script.getNextTargetLabel = getNextTargetLabel;
 script.getLiveGuidance = getLiveGuidance;
 script.setCaptureAnchorFromCurrentPose = setCaptureAnchorFromCurrentPose;
 script.resetCaptureState = resetCaptureState;
+script.startVideoRecording = startVideoRecording;
 
 script.createEvent("OnStartEvent").bind(function () {
     startCamera();
 });
 
 script.createEvent("UpdateEvent").bind(function () {
+    updateVideoRecording();
     tryCapture();
 });

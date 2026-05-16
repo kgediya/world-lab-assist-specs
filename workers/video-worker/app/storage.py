@@ -45,6 +45,12 @@ def download_frame(path: str) -> bytes:
     return supabase.storage.from_(INPUT_BUCKET).download(path)
 
 
+def delete_input_frames(paths: list[str]) -> None:
+    if not paths:
+        return
+    supabase.storage.from_(INPUT_BUCKET).remove(paths)
+
+
 def upload_output_video(path: str, video_bytes: bytes, content_type: str = "video/mp4") -> None:
     supabase.storage.from_(OUTPUT_BUCKET).upload(
         path,
@@ -73,3 +79,9 @@ def get_public_video_url(path: str) -> str:
             return str(public_url)
 
     raise RuntimeError("Could not resolve public URL for uploaded video")
+
+
+def delete_output_video(path: str) -> None:
+    if not path:
+        return
+    supabase.storage.from_(OUTPUT_BUCKET).remove([path])

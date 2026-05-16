@@ -4,7 +4,8 @@ global.WorldLabsConfig = {
     },
     edgeFunctions: {
         startScanPath: "world-labs-assist",
-        statusPath: "world-labs-assist"
+        statusPath: "world-labs-assist",
+        videoPath: "world-labs-video"
     },
     worldDefaults: {
         displayName: "World Labs Assist Capture",
