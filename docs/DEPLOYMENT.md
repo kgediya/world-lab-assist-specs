@@ -33,6 +33,13 @@ Run:
 
 This creates the `worldlabs_video_jobs` table used by the video path.
 
+If the table already exists in your project, add the new hosted-video tracking column:
+
+```sql
+alter table public.worldlabs_video_jobs
+add column if not exists video_url text;
+```
+
 ## Edge Function: `world-labs-video`
 
 Deploy:
@@ -67,6 +74,9 @@ Create a bucket for uploaded video frames, for example:
 Recommended path pattern:
 - `video-sessions/<sessionId>/frames/000001.jpg`
 
+Also create a public output bucket for stitched MP4s, for example:
+- `worldlabs-video-output`
+
 ## Lens Project Setup
 
 Inside Lens Studio, make sure:
@@ -86,11 +96,13 @@ If you are enabling only the current app flow:
 If you are enabling the video scaffold too:
 
 1. create the SQL table
-2. deploy `world-labs-video`
-3. deploy the `video-worker`
-4. configure `VIDEO_WORKER_URL`
-5. create the Storage bucket
-6. test the worker `/health` endpoint
+2. add the `video_url` column if your table already existed
+3. deploy `world-labs-video`
+4. redeploy the `video-worker`
+5. configure `VIDEO_WORKER_URL`
+6. configure worker env vars including `INPUT_BUCKET` and `OUTPUT_BUCKET`
+7. create the Storage buckets
+8. test the worker `/health` endpoint
 
 ## Security Notes
 

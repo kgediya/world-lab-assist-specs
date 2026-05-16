@@ -2,8 +2,15 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from app.storage import download_frame, get_job, list_frame_paths, update_job
-from app.worldlabs import prepare_and_upload_video, start_video_generation
+from app.storage import (
+    download_frame,
+    get_job,
+    get_public_video_url,
+    list_frame_paths,
+    update_job,
+    upload_output_video,
+)
+from app.worldlabs import start_video_generation_from_uri
 
 
 async def process_video_job(job_id: str):
@@ -59,19 +66,23 @@ async def process_video_job(job_id: str):
         update_job(job_id, {"status": "uploading_video"})
 
         video_bytes = output_path.read_bytes()
-        media_asset_id = await prepare_and_upload_video(
-            job["api_key"],
-            f"{job['session_id']}.mp4",
-            video_bytes,
+        output_storage_path = f"video-sessions/{job['session_id']}/{job['session_id']}.mp4"
+        upload_output_video(output_storage_path, video_bytes)
+        video_url = get_public_video_url(output_storage_path)
+
+        update_job(
+            job_id,
+            {
+                "status": "generating_world",
+                "video_url": video_url,
+            },
         )
 
-        update_job(job_id, {"status": "generating_world"})
-
-        operation = await start_video_generation(
+        operation = await start_video_generation_from_uri(
             job["api_key"],
             "World Labs Assist Video Capture",
             job["model_name"],
-            media_asset_id,
+            video_url,
         )
 
         operation_id = operation["operation_id"]
@@ -86,4 +97,5 @@ async def process_video_job(job_id: str):
         return {
             "job_id": job_id,
             "operation_id": operation_id,
+            "video_url": video_url,
         }

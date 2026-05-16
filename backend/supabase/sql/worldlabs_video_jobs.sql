@@ -12,6 +12,7 @@ create table if not exists public.worldlabs_video_jobs (
   operation_id text,
   world_id text,
   world_url text,
+  video_url text,
   error_message text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

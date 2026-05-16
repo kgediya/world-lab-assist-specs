@@ -5,6 +5,7 @@ const DEFAULT_WORLDLABS_API_KEY = Deno.env.get("WORLDLABS_API_KEY") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const VIDEO_WORKER_URL = Deno.env.get("VIDEO_WORKER_URL") || "";
+const WORLDLABS_BASE_URL = "https://api.worldlabs.ai";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -31,6 +32,29 @@ function getAdminHeaders() {
     Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     "Content-Type": "application/json",
   };
+}
+
+async function worldlabsRequest(apiKey: string, path: string, method: string, body?: unknown) {
+  if (!apiKey) {
+    throw new Error("Missing World Labs API key");
+  }
+
+  const response = await fetch(`${WORLDLABS_BASE_URL}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "WLT-Api-Key": apiKey,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `World Labs ${method} ${path} failed: ${response.status} ${await response.text()}`,
+    );
+  }
+
+  return await response.json();
 }
 
 async function insertVideoJob(payload: any, apiKey: string) {
@@ -84,6 +108,29 @@ async function getVideoJobById(jobId: string) {
   return rows[0] || null;
 }
 
+async function updateVideoJob(jobId: string, patch: Record<string, unknown>) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/worldlabs_video_jobs?id=eq.${encodeURIComponent(jobId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...getAdminHeaders(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(patch),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to update video job: ${response.status} ${await response.text()}`,
+    );
+  }
+
+  const rows = await response.json();
+  return rows[0] || null;
+}
+
 async function triggerWorker(jobId: string) {
   const response = await fetch(`${VIDEO_WORKER_URL}/process-video-job`, {
     method: "POST",
@@ -98,6 +145,59 @@ async function triggerWorker(jobId: string) {
       `Video worker rejected job: ${response.status} ${await response.text()}`,
     );
   }
+}
+
+async function syncJobWithWorldLabs(job: any) {
+  if (!job?.operation_id || !job?.api_key) {
+    return job;
+  }
+
+  const operation = await worldlabsRequest(
+    job.api_key,
+    `/marble/v1/operations/${job.operation_id}`,
+    "GET",
+  );
+
+  const worldId =
+    operation?.metadata?.world_id ||
+    operation?.response?.id ||
+    job.world_id ||
+    null;
+
+  if (!operation?.done) {
+    return await updateVideoJob(job.id, {
+      status: "polling_worldlabs",
+      world_id: worldId,
+    });
+  }
+
+  if (operation?.error) {
+    return await updateVideoJob(job.id, {
+      status: "failed",
+      world_id: worldId,
+      error_message: JSON.stringify(operation.error),
+    });
+  }
+
+  let worldUrl = job.world_url || null;
+  if (worldId) {
+    const worldResponse = await worldlabsRequest(
+      job.api_key,
+      `/marble/v1/worlds/${worldId}`,
+      "GET",
+    );
+    worldUrl =
+      worldResponse?.world?.world_marble_url ||
+      operation?.response?.world_marble_url ||
+      worldUrl;
+  }
+
+  return await updateVideoJob(job.id, {
+    status: "completed",
+    world_id: worldId,
+    world_url: worldUrl,
+    error_message: null,
+  });
 }
 
 async function handleStartVideoJob(payload: any) {
@@ -136,9 +236,13 @@ async function handleGetVideoJob(payload: any) {
     return json({ error: "Missing Supabase admin environment configuration" }, 500);
   }
 
-  const job = await getVideoJobById(payload.jobId);
+  let job = await getVideoJobById(payload.jobId);
   if (!job) {
     return json({ error: "Video job not found" }, 404);
+  }
+
+  if (job.status === "polling_worldlabs" && job.operation_id && job.api_key) {
+    job = await syncJobWithWorldLabs(job);
   }
 
   return json({
@@ -149,6 +253,7 @@ async function handleGetVideoJob(payload: any) {
     operationId: job.operation_id || null,
     worldId: job.world_id || null,
     worldUrl: job.world_url || null,
+    videoUrl: job.video_url || null,
     errorMessage: job.error_message || null,
     updatedAt: job.updated_at,
   });

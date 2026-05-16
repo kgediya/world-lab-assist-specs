@@ -9,8 +9,8 @@ It is intentionally separate from the current still-image flow so contributors c
 The worker is responsible for:
 - downloading uploaded JPEG frames from Supabase Storage
 - stitching them into an MP4 with native FFmpeg
-- uploading the MP4 to World Labs as a `video` media asset
-- starting World Labs world generation from that video
+- uploading the MP4 to a public Supabase output bucket
+- starting World Labs world generation from that hosted video URL
 - updating Supabase job state so the lens can poll in the background
 
 ## Folder Layout
@@ -53,7 +53,12 @@ Required:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `INPUT_BUCKET`
+- `OUTPUT_BUCKET`
 - `WORLDLABS_BASE_URL`
+
+Example:
+- `INPUT_BUCKET=worldlabs-video-input`
+- `OUTPUT_BUCKET=worldlabs-video-output`
 
 ## Local Run
 
@@ -79,8 +84,10 @@ Recommended flow:
 2. Lens calls the `world-labs-video` Edge Function.
 3. The Edge Function creates a DB job row.
 4. The Edge Function calls this worker.
-5. The worker stitches MP4 and starts World Labs generation.
-6. The lens polls background status through Supabase.
+5. The worker stitches MP4.
+6. The worker uploads the MP4 to a public Supabase bucket.
+7. The worker calls World Labs using `video_prompt.source = "uri"`.
+8. The lens polls background status through Supabase.
 
 ## Recommended Hosting
 
