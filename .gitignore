@@ -42,6 +42,29 @@ pnpm-lock.yaml
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+venv/
+
+# Generic env / secret files
+.env
+.env.*
+*.env
+*.secret
+*.secrets
+*.key
+*.pem
+
+# Supabase / Snap Cloud local secrets and overrides
+*.supabaseProject.meta
+supabase/.env
+supabase/.env.*
+supabase/.temp/
+supabase/.branches/
+supabase/.secrets/
+service_role.txt
+anon_key.txt
+supabase-service-role.txt
+supabase-anon-key.txt
 
 # Large local capture/test assets
 *.ply
