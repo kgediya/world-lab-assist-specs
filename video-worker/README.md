@@ -1,69 +1,110 @@
 # WLAO Video Worker
 
-This folder contains a deployable Docker-based backend for the `WLAO` video upload path.
+This folder contains the deployable backend scaffold for WLAO's future video upload path.
 
-It is designed to work alongside the existing still-image flow without replacing it.
+It is intentionally separate from the current still-image flow so contributors can iterate on video processing without destabilizing the live app path.
 
-## What It Does
+## Purpose
 
-1. Receives a job trigger from a Supabase Edge Function.
-2. Downloads uploaded frame JPEGs from Supabase Storage.
-3. Uses native `ffmpeg` inside Docker to stitch the frames into an MP4.
-4. Uploads that MP4 to World Labs as a `video` media asset.
-5. Starts World Labs world generation from the stitched video.
-6. Writes job state back into Supabase so the lens can poll in the background.
+The worker is responsible for:
+- downloading uploaded JPEG frames from Supabase Storage
+- stitching them into an MP4 with native FFmpeg
+- uploading the MP4 to World Labs as a `video` media asset
+- starting World Labs world generation from that video
+- updating Supabase job state so the lens can poll in the background
 
 ## Folder Layout
 
 - `app/main.py`
-  FastAPI entrypoint.
+  FastAPI entrypoint and health route.
 - `app/worker.py`
-  Orchestrates video job execution.
+  Video job orchestration.
 - `app/storage.py`
-  Supabase Storage and database helpers.
+  Supabase database and Storage helpers.
 - `app/worldlabs.py`
-  World Labs API helpers.
+  World Labs upload and generation helpers.
 - `requirements.txt`
   Python dependencies.
 - `Dockerfile`
-  Deployable container image.
+  Deployable image definition.
 - `.dockerignore`
-  Docker ignore rules.
+  Docker build exclusions.
 - `.env.example`
-  Required environment variables.
+  Environment variable reference.
 
-## Required Supabase Pieces
+## Related Repo Pieces
 
-Deploy these alongside this worker:
+This worker expects these backend pieces to exist:
+- [supabase/functions/world-labs-video/index.ts](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-video/index.ts)
+- [supabase/sql/worldlabs_video_jobs.sql](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/sql/worldlabs_video_jobs.sql)
 
-- `supabase/sql/worldlabs_video_jobs.sql`
-- `supabase/functions/world-labs-video/index.ts`
+## Expected Storage Layout
 
-## Required Environment Variables
+Frames should already exist in Supabase Storage before a worker job starts.
+
+Recommended path pattern:
+- `video-sessions/<sessionId>/frames/000001.jpg`
+
+## Environment Variables
 
 See `.env.example`.
 
-At minimum:
-
+Required:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `INPUT_BUCKET`
 - `WORLDLABS_BASE_URL`
 
-## Deploy
+## Local Run
 
-This worker is ideal for:
+Typical local flow:
 
+1. create a `.env` file from `.env.example`
+2. install dependencies
+3. run the FastAPI app
+4. test `/health`
+
+Example:
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8080
+```
+
+## Deployment Model
+
+Recommended flow:
+
+1. Lens records and uploads frames to Supabase Storage.
+2. Lens calls the `world-labs-video` Edge Function.
+3. The Edge Function creates a DB job row.
+4. The Edge Function calls this worker.
+5. The worker stitches MP4 and starts World Labs generation.
+6. The lens polls background status through Supabase.
+
+## Recommended Hosting
+
+Best fits:
 - Google Cloud Run
 - Railway
 - Fly.io
 - Render
 
-Recommended default: **Google Cloud Run**
+Recommended default:
+- **Cloud Run** for the cleanest long-term structure
+- **Railway** for quick prototype deployment
 
-## Notes
+## What This Folder Does Not Do
 
-- The worker expects frames to already exist in Supabase Storage under:
-  - `video-sessions/<sessionId>/frames/000001.jpg`
-- The lens should upload frames first, then call the video Edge Function.
-- The lens should not wait for FFmpeg or World Labs completion. Use background polling.
+It does not:
+- record video directly from Spectacles
+- upload frames from the lens
+- replace the current still-image workflow
+
+Those pieces remain lens-side or Edge Function responsibilities.
+
+## Related Docs
+
+- [README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/README.md)
+- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
+- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)

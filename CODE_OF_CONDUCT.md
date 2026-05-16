@@ -2,26 +2,34 @@
 
 ## Our Pledge
 
-We want this project to be a welcoming, respectful, and constructive space for everyone.
+We want WLAO to be a welcoming, respectful, and constructive project space.
 
 ## Our Standards
 
-Examples of behavior that contribute to a positive environment include:
-- Being respectful and considerate
-- Giving and accepting constructive feedback
-- Focusing on what is best for the project and its users
-- Helping others learn and collaborate effectively
+Examples of behavior that help this project:
+- being respectful and considerate
+- giving and accepting constructive feedback
+- focusing on what improves the project and helps users
+- documenting decisions clearly
+- helping contributors learn the repo and workflow
 
-Examples of unacceptable behavior include:
-- Harassment or personal attacks
-- Trolling, insulting, or derogatory comments
-- Public or private intimidation
-- Sharing private information without permission
+Examples of unacceptable behavior:
+- harassment or personal attacks
+- trolling, insulting, or derogatory comments
+- intimidation in public or private channels
+- sharing private information or credentials without permission
+
+## Scope
+
+This Code of Conduct applies:
+- in project discussions
+- in issues and pull requests
+- in spaces where someone is representing the project
 
 ## Enforcement
 
 Project maintainers may remove, edit, or reject contributions or interactions that do not align with this Code of Conduct.
 
-## Scope
+## Security Reminder
 
-This Code of Conduct applies within project spaces and in public spaces when someone is representing the project.
+Because this project involves backend credentials and API integrations, contributors are expected to treat secret handling seriously and avoid exposing tokens, keys, or local credential assets in public discussions or commits.

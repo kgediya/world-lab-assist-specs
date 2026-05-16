@@ -1,168 +1,152 @@
 # WLAO
 
-WLAO is a Spectacles + Lens Studio prototype that helps a wearer scan a real space, send four wide views to World Labs, and generate a Marble world from that capture.
+WLAO is an open-source Spectacles + Lens Studio app for turning real spaces into World Labs Marble worlds.
 
 Created by Krunal MB Gediya, also known as Krazyy Krunal.
 
-The current experience is intentionally focused:
-- configure World Labs once in-lens
-- capture four strong environmental views in any order
-- submit to Snap Cloud / Supabase
-- get ready for the next scan while the world finishes in the background
+## What This Repo Contains
 
-## Current Flow
+WLAO is intentionally split into a few clear layers:
 
-1. The wearer opens the lens.
-2. If no World Labs API key is configured, the setup panel appears first.
-3. The user enters their World Labs API key and chooses a model:
+- a wearable Lens Studio capture experience
+- a still-image Supabase Edge Function used by the current app flow
+- an optional video backend scaffold built around Supabase + a Docker FFmpeg worker
+
+The still-image flow is the active app today. The video path is scaffolded for contributors who want to push the project further.
+
+## Current App Flow
+
+1. Open the lens on Spectacles.
+2. If no World Labs API key is configured, the setup panel opens first.
+3. Enter the API key and choose a model:
    - `Mini` -> `Marble 0.1-mini`
    - `Pro` -> `Marble 0.1-plus`
-4. The lens guides the wearer to capture four wide views of the space in any order.
-5. The lens sends those views to the `world-labs-assist` Edge Function on Snap Cloud / Supabase.
-6. The Edge Function uploads the images to World Labs and starts world generation.
-7. As soon as the generation request is accepted, the lens resets to idle so the wearer can start another scan.
-8. Polling continues in the background until World Labs finishes the world.
-9. The completed world is then available in Marble for viewing.
+4. Capture four wide views of the space in any order.
+5. Submit the scan.
+6. The app uploads the images through Supabase to World Labs.
+7. The lens returns to idle quickly so the next scan can begin.
+8. World generation continues in the background.
+9. When finished, the world becomes available in Marble.
 
-### Model Selection
+## Project Structure
 
-- `Mini` maps to `Marble 0.1-mini`
-- `Pro` maps to `Marble 0.1-plus`
+- [Assets](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets)
+  Lens scene assets, UI assets, and app scripts.
+- [Assets/Scripts/WorldLabs](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs)
+  The main lens-side runtime logic.
+- [supabase/functions/world-labs-assist](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-assist)
+  The active still-image Edge Function.
+- [supabase/functions/world-labs-video](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/functions/world-labs-video)
+  Video-job orchestration Edge Function scaffold.
+- [supabase/sql](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/supabase/sql)
+  SQL needed by backend pieces such as the video jobs table.
+- [video-worker](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker)
+  Deployable Docker-based FFmpeg worker for the future video path.
+- [docs](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs)
+  Architecture, deployment, and repo-structure documentation.
 
-The setup panel persists both the API key and the selected model locally on-device, and restores those values when reopened.
+## Core Lens Scripts
 
-## Architecture
+- [config.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/config.js)
+  Project-level defaults and backend function names.
+- [WorldLabsController.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsController.js)
+  Main app state machine and UI flow.
+- [WorldLabsCameraCapture.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js)
+  Camera capture logic, heading anchoring, and preview/device behavior.
+- [WorldLabsBackend.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsBackend.js)
+  Lens-side submission and background polling transport.
+- [WorldLabsSetupPanel.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js)
+  API key + model settings flow with local persistence.
 
-### In-Lens
+## Backend Paths
 
-- `Assets/Scripts/config.js`
-  Central project defaults for Supabase URLs, function names, and model labels.
-- `Assets/Scripts/WorldLabs/WorldLabsController.js`
-  The main state machine for scan flow, button visibility, UI messaging, and submission.
-- `Assets/Scripts/WorldLabs/WorldLabsCameraCapture.js`
-  Heading-anchored capture logic, guidance, still-image capture on Spectacles, and preview fallback in Lens Studio.
-- `Assets/Scripts/WorldLabs/WorldLabsBackend.js`
-  Lens-side transport layer for calling the Edge Function, starting background submissions, and polling generation status in the background.
-- `Assets/Scripts/WorldLabs/WorldLabsSetupPanel.js`
-  Setup flow for API key entry, model selection, local persistence, and main-menu gating.
+### Still-image path
 
-### Snap Cloud / Supabase
+This is the active path used by the current app:
 
-- `supabase/functions/world-labs-assist/index.ts`
-  Local reference copy of the Edge Function used by the lens flow. This is included so contributors can see exactly what payload the lens expects and what the deployed backend should be doing.
+1. capture four images
+2. send them to `world-labs-assist`
+3. upload them to World Labs
+4. start generation
+5. poll status in the background
 
-The Edge Function currently:
-- accepts `start` and `status` actions
-- uses the user-provided `apiKey` when supplied by the lens
-- uploads up to four captured images as World Labs media assets
-- starts a `multi-image` world generation request
-- supports background status polling from the lens after submission
-- returns the resulting Marble world URL when available
+### Video path scaffold
+
+This repo also includes a structured backend scaffold for video generation:
+
+1. upload frame sequences to Supabase Storage
+2. call `world-labs-video`
+3. create a tracked job row
+4. trigger the Docker FFmpeg worker
+5. stitch MP4
+6. upload video to World Labs
+7. start generation from video
+
+The backend pieces are present in the repo, but the lens-side recording and frame-upload flow is not fully wired yet.
 
 ## Setup
 
 1. Open `WLAO` in Lens Studio.
 2. Make sure the project is configured for Spectacles.
-3. Assign the required scene references in the inspector for:
+3. Assign required scene references for:
    - `WorldLabsController`
    - `WorldLabsCameraCapture`
    - `WorldLabsBackend`
    - `WorldLabsSetupPanel`
-4. Assign the required Snap assets such as:
+4. Assign required Snap resources such as:
    - `InternetModule`
-   - a locally created `SupabaseProject` asset
-5. Verify `Assets/Scripts/config.js` matches your Snap Cloud / Supabase deployment.
-6. Deploy or update the `world-labs-assist` Edge Function using the local reference copy in `supabase/functions/world-labs-assist/index.ts`.
+   - your local `SupabaseProject` asset
+5. Verify [config.js](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/Assets/Scripts/config.js) matches your backend deployment.
+6. Deploy the backend function(s) you need.
 
-### Supabase Project Asset
+## Billing Note
 
-This repository does not expect a committed `.supabaseProject` asset.
+World Labs subscription access and World Labs API billing are different.
 
-Each contributor should create or assign their own local `SupabaseProject` asset inside Lens Studio and wire it to `WorldLabsBackend`.
-
-Why:
-- the asset contains a public anon token that GitGuardian will flag as a JWT-shaped secret
-- even though it is a public client token, it is cleaner to keep environment-specific Snap Cloud / Supabase assets out of the shared repo
-
-## Setup Panel Notes
-
-- If the API key is missing, the setup panel is shown before the user can scan.
-- `DONE` is disabled until a non-empty API key is entered.
-- The selected API key and model are persisted locally on-device for prototype convenience.
-- The settings button can reopen the panel later so the user can change their key or switch between `Mini` and `Pro`.
-- `DONE` commits the current API key and current model, then closes the panel.
-- Reopening the panel restores the previously saved API key and model selection.
-
-## World Labs Billing Note
-
-This prototype uses the World Labs API, which has its own billing / credit model.
-
-Important:
-- a World Labs subscription is not the same thing as API credits
-- even if a World Labs account is connected successfully, generation can still fail if API billing is not enabled or API credits are unavailable
-
-Common error:
+If generation fails with something like:
 - `402 Insufficient credits for model ...`
 
-That error means the API key is valid, but the World Labs account does not currently have the required API credits for generation.
+that usually means:
+- the API key is valid
+- the request reached World Labs
+- API credits or billable access for that model are not currently available
+
+## Secrets and Local Assets
+
+This repo is set up to avoid committing local credential-bearing assets.
+
+Keep local only:
+- `.supabaseProject`
+- `.supabaseProject.meta`
+- `.env` files
+- Supabase service-role keys
+- raw World Labs API keys
+
+The repo `.gitignore` already blocks these patterns, but contributors should still sanity-check staged files.
 
 ## Preview vs Spectacles
 
-- Lens Studio preview uses the live preview texture as a fallback because `requestImage()` is not supported in editor preview.
-- On actual Spectacles, the project uses higher-quality still image capture for accepted views.
-
-Use preview for:
+Lens Studio preview is useful for:
 - UI iteration
-- state machine checks
+- state-machine checks
 - callback wiring
 
-Use Spectacles for:
-- actual capture quality
-- real still-image behavior
-- end-to-end submission validation
-
-## Submission Behavior
-
-The current `WLAO` app does not block on world completion.
-
-After submission:
-- the current scan is handed off to World Labs
-- the app resets to idle quickly
-- the wearer can begin the next scan
-- background polling continues until the previous world is finished
-
-This keeps the prototype feeling faster and better suited to repeated world capture sessions.
-
-## Future Improvements
-
-### Video Upload Path
-
-The current prototype uses four curated still images because it is the smallest reliable architecture for a prototype.
-
-A likely next-generation flow is:
-- capture a short guided video instead of four stills
-- upload the recorded video as a World Labs media asset
-- call the World Labs `video` generation path instead of `multi-image`
-
-Why this is attractive:
-- it matches natural head-turn behavior better
-- it gives World Labs richer spatial input
-- it reduces the "pick four moments" constraint
-
-What is not in scope yet:
-- FFmpeg conversion inside the current Edge Function
-- panorama stitching inside the current Lens Studio flow
-- video upload orchestration from Lens Studio into the World Labs video path
-
-Those paths are possible later, but the current prototype intentionally stays lightweight and cheap to operate.
-
-## Prototype Notes
-
-- API keys are persisted locally on-device in this prototype.
-- For a production release, a server-side saved-key or session-token flow would be safer than local secret persistence.
-- The included Edge Function file is a local reference copy and should be kept in sync with the deployed Snap Cloud / Supabase backend.
+Actual Spectacles are required for:
+- real still-image capture behavior
+- true device quality
+- realistic end-to-end validation
 
 ## Documentation
+
+- [docs/ARCHITECTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/ARCHITECTURE.md)
+- [docs/DEPLOYMENT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/DEPLOYMENT.md)
+- [docs/REPO_STRUCTURE.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/docs/REPO_STRUCTURE.md)
+- [video-worker/README.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/video-worker/README.md)
+- [CONTRIBUTING.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CONTRIBUTING.md)
+- [SECURITY.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SECURITY.md)
+- [SUPPORT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SUPPORT.md)
+
+## Tech Stack Documentation
 
 ### Snap / Lens Studio / Spectacles
 
@@ -194,27 +178,18 @@ Those paths are possible later, but the current prototype intentionally stays li
 - World Labs API quickstart: https://docs.worldlabs.ai/api
 - World Labs API FAQ: https://docs.worldlabs.ai/api/faq
 - World Labs API pricing: https://docs.worldlabs.ai/api/pricing
+- World Labs media upload reference: https://docs.worldlabs.ai/api/reference/media-assets/prepare-upload
 - World Labs get operation: https://docs.worldlabs.ai/api/reference/operations/get
 - World Labs get world: https://docs.worldlabs.ai/api/reference/worlds/get
+- World Labs generate world: https://docs.worldlabs.ai/api/reference/worlds/generate
 
 ## Contributing and Support
 
-- Contribution guidelines: `CONTRIBUTING.md`
-- Community expectations: `CODE_OF_CONDUCT.md`
-- Security reporting: `SECURITY.md`
-- Support notes: `SUPPORT.md`
-
-## Source Control
-
-This repository follows Snap's Lens Studio source-control guidance:
-- ignore caches and user-specific artifacts
-- keep actual project content under version control
-- keep the root `.gitignore` as the main ignore file for the repo
-
-Reference:
-- Snap Lens Studio source control guidance: https://developers.snap.com/lens-studio/4.55.1/references/guides/general/source-control
+- Contribution guidelines: [CONTRIBUTING.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CONTRIBUTING.md)
+- Community expectations: [CODE_OF_CONDUCT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/CODE_OF_CONDUCT.md)
+- Security reporting: [SECURITY.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SECURITY.md)
+- Support notes: [SUPPORT.md](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/SUPPORT.md)
 
 ## License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
-
+This project is licensed under the MIT License. See [LICENSE](/d:/Workspace/Lens%20Studio/Spectacles/WLAO/LICENSE) for details.
